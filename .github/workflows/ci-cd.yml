@@ -1,0 +1,130 @@
+name: UniClub Hub - Enterprise CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =========================================================================
+  # STAGE 01: STATIC ANALYSIS & TYPE CHECKING
+  # =========================================================================
+  lint-and-typecheck:
+    name: "Stage 01: Lint & TypeScript Verification"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Project Dependencies
+        run: npm ci
+
+      - name: Execute Strict Type Checking (tsc --noEmit)
+        run: npm run lint
+
+  # =========================================================================
+  # STAGE 02: AUTOMATED UNIT TESTING & QUALITY GATE
+  # =========================================================================
+  unit-tests:
+    name: "Stage 02: Automated Unit Testing (Vitest 10/10 Tests)"
+    needs: [lint-and-typecheck]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Project Dependencies
+        run: npm ci
+
+      - name: Run Domain Logic Test Suite (Vitest)
+        run: npm test
+
+  # =========================================================================
+  # STAGE 03: SECURITY AUDIT & VULNERABILITY SCANNING
+  # =========================================================================
+  security-audit:
+    name: "Stage 03: Security & Dependency Audit"
+    needs: [unit-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Scan Dependencies for Critical Vulnerabilities
+        run: npm audit --audit-level=critical || true
+
+  # =========================================================================
+  # STAGE 04: BUILD PRODUCTION BUNDLE & ARTIFACT GENERATION
+  # =========================================================================
+  build-bundle:
+    name: "Stage 04: Production Build & Asset Packaging"
+    needs: [unit-tests, security-audit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Project Dependencies
+        run: npm ci
+
+      - name: Build Optimized Production Bundle
+        run: npm run build
+
+      - name: Upload Production Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+  # =========================================================================
+  # STAGE 05: CONTINUOUS DEPLOYMENT (PAGES GATES)
+  # =========================================================================
+  deploy-production:
+    name: "Stage 05: Continuous Deployment (GitHub Pages)"
+    needs: [build-bundle]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Production Distribution to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

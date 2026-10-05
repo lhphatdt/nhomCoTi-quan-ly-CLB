@@ -1,0 +1,6 @@
+{
+  "name": "UniClub Hub",
+  "description": "Nền tảng Quản trị Câu lạc bộ Sinh viên Toàn diện & Tự động hóa Pipeline CI/CD với GitHub Actions",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
