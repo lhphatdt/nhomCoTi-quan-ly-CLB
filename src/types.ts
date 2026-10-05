@@ -5,6 +5,32 @@ export type Department =
   | 'Ban Sự kiện'
   | 'Ban Đối ngoại - Hậu cần';
 
+export type UserRole = 'admin' | 'treasurer' | 'event_lead' | 'member' | 'guest';
+
+export interface AuthUser {
+  id: string;
+  mssv: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  department: Department;
+  role: UserRole;
+  roleTitle: string;
+  avatar?: string;
+  status: MemberStatus;
+  password?: string;
+}
+
+export interface RegisterFormData {
+  fullName: string;
+  mssv: string;
+  email: string;
+  phone: string;
+  department: Department;
+  password: string;
+  confirmPassword: string;
+}
+
 export type MemberStatus = 'official' | 'pending';
 
 export interface ClubMember {

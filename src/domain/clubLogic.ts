@@ -1,4 +1,4 @@
-import { ClubMember, ClubEvent, TreasuryTransaction, TreasurySummary, UnitTestCaseResult } from '../types.ts';
+import { ClubMember, ClubEvent, TreasuryTransaction, TreasurySummary, UnitTestCaseResult, AuthUser, RegisterFormData, UserRole } from '../types.ts';
 
 // ============================================================================
 // FORMATTERS & HELPERS
@@ -246,7 +246,133 @@ export function calculateAttendanceRate(attendedCount: number, totalExpected: nu
 }
 
 // ============================================================================
-// 4. IN-BROWSER UNIT TEST SUITE RUNNER (10 TEST CASES)
+// 4. AUTHENTICATION & ROLE-BASED ACCESS CONTROL (RBAC) LOGIC
+// ============================================================================
+export interface AuthValidationResult {
+  isValid: boolean;
+  errors: Record<string, string>;
+}
+
+export function validateRegistration(
+  formData: RegisterFormData,
+  existingUsers: AuthUser[]
+): AuthValidationResult {
+  const errors: Record<string, string> = {};
+  const trimmedName = formData.fullName.trim();
+  const trimmedMssv = formData.mssv.trim().toUpperCase();
+  const trimmedEmail = formData.email.trim().toLowerCase();
+  const trimmedPhone = formData.phone.trim();
+
+  if (!trimmedName || trimmedName.length < 3) {
+    errors.fullName = 'Họ và tên tối thiểu từ 3 ký tự trở lên.';
+  }
+
+  if (!trimmedMssv) {
+    errors.mssv = 'Mã số sinh viên không được để trống.';
+  } else if (trimmedMssv.length < 6 || trimmedMssv.length > 10) {
+    errors.mssv = 'MSSV phải có độ dài từ 6 đến 10 ký tự.';
+  } else if (!/^[A-Z0-9]+$/.test(trimmedMssv)) {
+    errors.mssv = 'MSSV chỉ được chứa chữ cái và số.';
+  } else if (existingUsers.some(u => u.mssv.toUpperCase() === trimmedMssv)) {
+    errors.mssv = `MSSV ${trimmedMssv} đã được đăng ký tài khoản trong hệ thống.`;
+  }
+
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!trimmedEmail) {
+    errors.email = 'Email không được để trống.';
+  } else if (!emailRegex.test(trimmedEmail)) {
+    errors.email = 'Định dạng email sinh viên không hợp lệ.';
+  } else if (existingUsers.some(u => u.email.toLowerCase() === trimmedEmail)) {
+    errors.email = 'Địa chỉ email này đã được sử dụng.';
+  }
+
+  const phoneRegex = /^0\d{9}$/;
+  if (!trimmedPhone) {
+    errors.phone = 'Số điện thoại không được để trống.';
+  } else if (!phoneRegex.test(trimmedPhone)) {
+    errors.phone = 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0.';
+  }
+
+  if (!formData.password) {
+    errors.password = 'Mật khẩu không được để trống.';
+  } else if (formData.password.length < 6) {
+    errors.password = 'Mật khẩu phải có ít nhất 6 ký tự bảo mật.';
+  }
+
+  if (formData.password !== formData.confirmPassword) {
+    errors.confirmPassword = 'Mật khẩu xác nhận không trùng khớp.';
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
+
+export function authenticateUser(
+  identifier: string,
+  password: string,
+  users: AuthUser[]
+): { success: boolean; user?: AuthUser; error?: string } {
+  const cleanId = identifier.trim().toLowerCase();
+  const cleanPass = password.trim();
+
+  if (!cleanId || !cleanPass) {
+    return {
+      success: false,
+      error: 'Vui lòng nhập đầy đủ Email/MSSV và Mật khẩu.',
+    };
+  }
+
+  const matched = users.find(
+    u => u.email.toLowerCase() === cleanId || u.mssv.toLowerCase() === cleanId
+  );
+
+  if (!matched) {
+    return {
+      success: false,
+      error: 'Tài khoản không tồn tại. Vui lòng kiểm tra lại MSSV hoặc Email.',
+    };
+  }
+
+  if (matched.password && matched.password !== cleanPass) {
+    return {
+      success: false,
+      error: 'Mật khẩu không chính xác. Vui lòng thử lại!',
+    };
+  }
+
+  return {
+    success: true,
+    user: matched,
+  };
+}
+
+export function canPerformAction(
+  user: AuthUser | null,
+  action: 'manage_members' | 'approve_expense' | 'create_event' | 'run_cicd' | 'view_overview'
+): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+
+  switch (action) {
+    case 'view_overview':
+      return true;
+    case 'approve_expense':
+      return user.role === 'treasurer';
+    case 'create_event':
+      return user.role === 'event_lead' || user.role === 'treasurer';
+    case 'manage_members':
+      return user.role === 'admin';
+    case 'run_cicd':
+      return user.role === 'admin' || user.role === 'event_lead';
+    default:
+      return false;
+  }
+}
+
+// ============================================================================
+// 5. IN-BROWSER UNIT TEST SUITE RUNNER (12 TEST CASES)
 // ============================================================================
 export function runBrowserUnitTests(simulateBug = false): UnitTestCaseResult[] {
   const results: UnitTestCaseResult[] = [];
@@ -567,6 +693,81 @@ export function runBrowserUnitTests(simulateBug = false): UnitTestCaseResult[] {
       inputSummary: 'Case A: 34/40 người (85%), Case B: 0/0 người dự kiến',
       expected: 'rate1: 85.0%, rate2: 0.0%',
       actual: `rate1: ${rate1}%, rate2: ${rate2}%`,
+      latencyMs: duration,
+      passed,
+    });
+  }
+
+  // Test 11: authenticateUser verifies valid credentials vs invalid
+  {
+    const start = performance.now();
+    const mockAuthUsers: AuthUser[] = [
+      {
+        id: 'u-1',
+        mssv: 'B21DCCN001',
+        fullName: 'Nguyễn Văn An',
+        email: 'an.nguyen@university.edu.vn',
+        department: 'Ban Chủ nhiệm',
+        role: 'admin',
+        roleTitle: 'Chủ nhiệm CLB',
+        status: 'official',
+        password: 'password123',
+      },
+    ];
+
+    const authSuccess = authenticateUser('B21DCCN001', 'password123', mockAuthUsers);
+    const authWrongPass = authenticateUser('B21DCCN001', 'wrongpass', mockAuthUsers);
+    const duration = Math.round((performance.now() - start) * 100) / 100;
+    const passed = authSuccess.success === true && authWrongPass.success === false;
+
+    results.push({
+      id: 'TC-11',
+      title: 'Xác thực tài khoản đăng nhập (Hỗ trợ MSSV/Email và mật khẩu)',
+      targetFunction: 'authenticateUser',
+      inputSummary: 'Đúng pass: password123, Sai pass: wrongpass',
+      expected: 'authSuccess: true, authWrongPass: false',
+      actual: `authSuccess: ${authSuccess.success}, authWrongPass: ${authWrongPass.success}`,
+      latencyMs: duration,
+      passed,
+    });
+  }
+
+  // Test 12: canPerformAction validates RBAC permissions correctly
+  {
+    const start = performance.now();
+    const adminUser: AuthUser = {
+      id: 'u-admin',
+      mssv: 'B21DCCN001',
+      fullName: 'Admin',
+      email: 'admin@uni.edu.vn',
+      department: 'Ban Chủ nhiệm',
+      role: 'admin',
+      roleTitle: 'Chủ nhiệm',
+      status: 'official',
+    };
+    const memberUser: AuthUser = {
+      id: 'u-mem',
+      mssv: 'B22DCCN999',
+      fullName: 'Thành viên',
+      email: 'mem@uni.edu.vn',
+      department: 'Ban Chuyên môn',
+      role: 'member',
+      roleTitle: 'Thành viên',
+      status: 'official',
+    };
+
+    const adminCanApprove = canPerformAction(adminUser, 'approve_expense');
+    const memberCannotApprove = canPerformAction(memberUser, 'approve_expense');
+    const duration = Math.round((performance.now() - start) * 100) / 100;
+    const passed = adminCanApprove === true && memberCannotApprove === false;
+
+    results.push({
+      id: 'TC-12',
+      title: 'Kiểm tra phân quyền vai trò người dùng (RBAC Guard - Admin vs Member)',
+      targetFunction: 'canPerformAction',
+      inputSummary: 'Hành động: approve_expense (Admin được phép, Member bị chặn)',
+      expected: 'adminCanApprove: true, memberCannotApprove: false',
+      actual: `admin: ${adminCanApprove}, member: ${memberCannotApprove}`,
       latencyMs: duration,
       passed,
     });

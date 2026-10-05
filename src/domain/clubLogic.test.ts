@@ -6,8 +6,11 @@ import {
   checkEventScheduleConflict,
   calculateAttendanceRate,
   classifyMemberActivity,
+  validateRegistration,
+  authenticateUser,
+  canPerformAction,
 } from './clubLogic.ts';
-import { ClubMember, ClubEvent, TreasuryTransaction } from '../types.ts';
+import { ClubMember, ClubEvent, TreasuryTransaction, AuthUser } from '../types.ts';
 
 describe('UniClub Hub - Domain Logic & Safety Rules Test Suite', () => {
   const existingMembers: ClubMember[] = [
@@ -218,5 +221,101 @@ describe('UniClub Hub - Domain Logic & Safety Rules Test Suite', () => {
 
     const classification = classifyMemberActivity(88);
     expect(classification.level).toBe('Xuất sắc');
+  });
+
+  // Test Case 11: Authentication & Registration Validation
+  it('TC-11: should correctly validate registration form and authenticate credentials', () => {
+    const mockAuthUsers: AuthUser[] = [
+      {
+        id: 'u-01',
+        mssv: 'B21DCCN001',
+        fullName: 'Nguyễn Văn An',
+        email: 'an.nguyen@university.edu.vn',
+        department: 'Ban Chủ nhiệm',
+        role: 'admin',
+        roleTitle: 'Chủ nhiệm CLB',
+        status: 'official',
+        password: 'adminPassword123',
+      },
+    ];
+
+    // Successful login by MSSV
+    const loginByMssv = authenticateUser('B21DCCN001', 'adminPassword123', mockAuthUsers);
+    expect(loginByMssv.success).toBe(true);
+    expect(loginByMssv.user?.fullName).toBe('Nguyễn Văn An');
+
+    // Successful login by Email
+    const loginByEmail = authenticateUser('an.nguyen@university.edu.vn', 'adminPassword123', mockAuthUsers);
+    expect(loginByEmail.success).toBe(true);
+
+    // Failed login: Wrong password
+    const loginFailPass = authenticateUser('B21DCCN001', 'wrongPass', mockAuthUsers);
+    expect(loginFailPass.success).toBe(false);
+    expect(loginFailPass.error).toContain('Mật khẩu không chính xác');
+
+    // Registration validation rejection for duplicate email
+    const regRes = validateRegistration(
+      {
+        fullName: 'Nguyễn Văn Mới',
+        mssv: 'B23DCCN999',
+        email: 'an.nguyen@university.edu.vn', // Duplicate email
+        phone: '0912345678',
+        department: 'Ban Chuyên môn',
+        password: 'password123',
+        confirmPassword: 'password123',
+      },
+      mockAuthUsers
+    );
+    expect(regRes.isValid).toBe(false);
+    expect(regRes.errors.email).toContain('đã được sử dụng');
+  });
+
+  // Test Case 12: Role-Based Access Control (RBAC) Permission Gates
+  it('TC-12: should enforce strict Role-Based Access Control (RBAC) permissions', () => {
+    const admin: AuthUser = {
+      id: 'u-1',
+      mssv: 'B21DCCN001',
+      fullName: 'Admin',
+      email: 'a@uni.edu.vn',
+      department: 'Ban Chủ nhiệm',
+      role: 'admin',
+      roleTitle: 'Chủ nhiệm',
+      status: 'official',
+    };
+    const treasurer: AuthUser = {
+      id: 'u-2',
+      mssv: 'B21DCCN045',
+      fullName: 'Treasurer',
+      email: 't@uni.edu.vn',
+      department: 'Ban Chủ nhiệm',
+      role: 'treasurer',
+      roleTitle: 'Thủ quỹ',
+      status: 'official',
+    };
+    const regularMember: AuthUser = {
+      id: 'u-3',
+      mssv: 'B22DCCN215',
+      fullName: 'Member',
+      email: 'm@uni.edu.vn',
+      department: 'Ban Chuyên môn',
+      role: 'member',
+      roleTitle: 'Thành viên',
+      status: 'official',
+    };
+
+    // Admin can perform all actions
+    expect(canPerformAction(admin, 'manage_members')).toBe(true);
+    expect(canPerformAction(admin, 'approve_expense')).toBe(true);
+    expect(canPerformAction(admin, 'create_event')).toBe(true);
+    expect(canPerformAction(admin, 'run_cicd')).toBe(true);
+
+    // Treasurer can approve expenses
+    expect(canPerformAction(treasurer, 'approve_expense')).toBe(true);
+    expect(canPerformAction(treasurer, 'manage_members')).toBe(false);
+
+    // Regular member cannot approve expenses or manage members
+    expect(canPerformAction(regularMember, 'approve_expense')).toBe(false);
+    expect(canPerformAction(regularMember, 'manage_members')).toBe(false);
+    expect(canPerformAction(regularMember, 'view_overview')).toBe(true);
   });
 });

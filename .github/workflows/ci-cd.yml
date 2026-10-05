@@ -44,7 +44,7 @@ jobs:
   # STAGE 02: AUTOMATED UNIT TESTING & QUALITY GATE
   # =========================================================================
   unit-tests:
-    name: "Stage 02: Automated Unit Testing (Vitest 10/10 Tests)"
+    name: "Stage 02: Automated Unit Testing (Vitest 12/12 Tests)"
     needs: [lint-and-typecheck]
     runs-on: ubuntu-latest
     timeout-minutes: 5
