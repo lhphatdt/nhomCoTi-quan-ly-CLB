@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tin tức & Hoạt động - UniClub Hub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-uniclub sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-dark" href="index.html">
+        <span class="navbar-brand-badge">UC</span>
+        <div>
+          <span class="fs-5 tracking-tight d-block leading-none">UniClub Hub</span>
+          <small class="text-muted fw-normal" style="font-size: 0.65rem;">Quản lý CLB Sinh viên</small>
+        </div>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+          <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house-door me-1"></i> Trang chủ</a></li>
+          <li class="nav-item"><a class="nav-link" href="events.html"><i class="bi bi-calendar-event me-1"></i> Sự kiện</a></li>
+          <li class="nav-item"><a class="nav-link" href="calendar.html"><i class="bi bi-calendar3 me-1"></i> Lịch tháng</a></li>
+          <li class="nav-item"><a class="nav-link" href="checkin.html"><i class="bi bi-qr-code-scan me-1"></i> Điểm danh QR</a></li>
+          <li class="nav-item"><a class="nav-link" href="my-registrations.html"><i class="bi bi-card-checklist me-1"></i> Lịch sử tham gia</a></li>
+          <li class="nav-item"><a class="nav-link active" href="news.html"><i class="bi bi-newspaper me-1"></i> Tin tức</a></li>
+          <li class="nav-item"><a class="nav-link" href="membership.html"><i class="bi bi-person-plus me-1"></i> Gia nhập CLB</a></li>
+        </ul>
+
+        <div class="d-flex align-items-center gap-2">
+          <a href="admin/dashboard.html" class="btn btn-outline-primary rounded-pill px-3 py-1 fw-bold">
+            <i class="bi bi-shield-lock me-1"></i> Trang Quản trị
+          </a>
+          <div class="dropdown">
+            <button class="btn btn-primary rounded-pill px-3 py-1 dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle"></i>
+              <span class="fw-semibold">Lưu Hữu Phát</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+              <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person me-2"></i>Hồ sơ cá nhân</a></li>
+              <li><a class="dropdown-item text-danger" href="login.html"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PAGE HEADER -->
+  <div class="bg-white border-bottom py-4 mb-4">
+    <div class="container">
+      <h3 class="fw-bold text-dark m-0">Bản Tin Hoạt Động UniClub</h3>
+      <p class="text-muted small m-0">Cập nhật tin tức, hình ảnh phóng sự và thông cáo báo chí của câu lạc bộ</p>
+    </div>
+  </div>
+
+  <!-- NEWS LIST -->
+  <div class="container mb-5">
+    <div class="row g-4">
+      
+      <div class="col-lg-8">
+        <div class="card card-uniclub border-0 shadow-sm p-4 mb-4">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle align-self-start mb-2">Học thuật · DevOps</span>
+          <h4 class="fw-bold mb-2">Nhóm Dự án UniClub Hoàn Thành Bảo Vệ Pipeline CI/CD Sprint 2 Thành Công Rực Rỡ</h4>
+          <p class="text-muted small mb-3">Đăng bởi <strong>Đỗ Thị Thơ (Ban Truyền thông)</strong> · 04/10/2026</p>
+          <p class="text-secondary small leading-relaxed">
+            Dưới sự cố vấn của Giảng viên phụ trách học phần Các vấn đề hiện đại của CNTT, nhóm phát triển UniClub đã xây dựng và kiểm thử thành công hệ thống tự động hóa CI/CD với 12 test case pass 100%, tích hợp quét bảo mật và đóng gói triển khai ứng dụng quản lý câu lạc bộ.
+          </p>
+          <div class="p-3 bg-light rounded-3 border small">
+            <i class="bi bi-quote fs-4 text-primary d-block"></i>
+            <em>"Quy trình tự động hóa đã giúp nhóm tiết kiệm hàng chục giờ kiểm thử thủ công và tự tin trước buổi Demo Day bảo vệ đồ án."</em>
+          </div>
+        </div>
+
+        <div class="card card-uniclub border-0 shadow-sm p-4 mb-4">
+          <span class="badge bg-success-subtle text-success border border-success-subtle align-self-start mb-2">Tình nguyện</span>
+          <h4 class="fw-bold mb-2">Phát Động Phong Trào Quyên Góp Sách Vở Cho Chiến Dịch Tình Nguyện Mùa Thu 2026</h4>
+          <p class="text-muted small mb-3">Đăng bởi <strong>Nguyễn Ngọc Hoa (Ban Sự kiện)</strong> · 02/10/2026</p>
+          <p class="text-secondary small leading-relaxed">
+            Nhằm chia sẻ yêu thương với các em học sinh có hoàn cảnh khó khăn tại Ba Vì, Ban Chủ nhiệm chính thức đặt bàn tiếp nhận sách vở, đồ dùng học tập tại sảnh nhà A2 từ ngày 05/10 đến hết ngày 20/10/2026.
+          </p>
+        </div>
+
+        <div class="card card-uniclub border-0 shadow-sm p-4">
+          <span class="badge bg-warning-subtle text-warning border border-warning-subtle align-self-start mb-2">Thông báo tuyển quân</span>
+          <h4 class="fw-bold mb-2">Chính Thức Mở Đơn Đăng Ký Gia Nhập UniClub Đợt 1 Năm Học 2026-2027</h4>
+          <p class="text-muted small mb-3">Đăng bởi <strong>Nguyễn Phương Linh (Chủ nhiệm CLB)</strong> · 28/09/2026</p>
+          <p class="text-secondary small leading-relaxed">
+            UniClub mở rộng tuyển sinh viên K24 vào 4 ban chuyên môn. Các bạn tân sinh viên có niềm đam mê công nghệ, truyền thông và tổ chức sự kiện hãy nhanh tay gửi đơn xét duyệt trực tuyến.
+          </p>
+          <a href="membership.html" class="btn btn-sm btn-outline-warning text-dark rounded-pill fw-bold mt-2">Xem chi tiết đơn tuyển</a>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card card-uniclub border-0 shadow-sm p-4 mb-4">
+          <h6 class="fw-bold mb-3"><i class="bi bi-fire text-danger me-2"></i>Tin Nổi Bật</h6>
+          <ul class="list-unstyled small space-y-3 mb-0">
+            <li class="mb-3">
+              <a href="#" class="text-decoration-none text-dark fw-bold d-block">Hướng dẫn kết nối máy chủ Tomcat Staging</a>
+              <span class="text-muted" style="font-size: 0.75rem;">120 lượt đọc · 03/10/2026</span>
+            </li>
+            <li class="mb-3">
+              <a href="#" class="text-decoration-none text-dark fw-bold d-block">Top 5 hội viên có điểm cống hiến cao nhất tháng 9</a>
+              <span class="text-muted" style="font-size: 0.75rem;">245 lượt đọc · 30/09/2026</span>
+            </li>
+            <li>
+              <a href="#" class="text-decoration-none text-dark fw-bold d-block">Lịch phỏng vấn tân hội viên đợt tuyển quân K24</a>
+              <span class="text-muted" style="font-size: 0.75rem;">180 lượt đọc · 29/09/2026</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="uniclub-footer">
+    <div class="container text-center small text-muted">
+      Bản quyền © 2026 UniClub Hub · Hệ thống Quản lý Câu lạc bộ Sinh viên.
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

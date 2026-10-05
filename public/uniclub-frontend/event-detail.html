@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chi tiết Sự kiện - UniClub Hub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-uniclub sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-dark" href="index.html">
+        <span class="navbar-brand-badge">UC</span>
+        <div>
+          <span class="fs-5 tracking-tight d-block leading-none">UniClub Hub</span>
+          <small class="text-muted fw-normal" style="font-size: 0.65rem;">Quản lý CLB Sinh viên</small>
+        </div>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+          <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house-door me-1"></i> Trang chủ</a></li>
+          <li class="nav-item"><a class="nav-link active" href="events.html"><i class="bi bi-calendar-event me-1"></i> Sự kiện</a></li>
+          <li class="nav-item"><a class="nav-link" href="calendar.html"><i class="bi bi-calendar3 me-1"></i> Lịch tháng</a></li>
+          <li class="nav-item"><a class="nav-link" href="checkin.html"><i class="bi bi-qr-code-scan me-1"></i> Điểm danh QR</a></li>
+          <li class="nav-item"><a class="nav-link" href="my-registrations.html"><i class="bi bi-card-checklist me-1"></i> Lịch sử tham gia</a></li>
+          <li class="nav-item"><a class="nav-link" href="news.html"><i class="bi bi-newspaper me-1"></i> Tin tức</a></li>
+          <li class="nav-item"><a class="nav-link" href="membership.html"><i class="bi bi-person-plus me-1"></i> Gia nhập CLB</a></li>
+        </ul>
+
+        <div class="d-flex align-items-center gap-2">
+          <a href="admin/dashboard.html" class="btn btn-outline-primary rounded-pill px-3 py-1 fw-bold">
+            <i class="bi bi-shield-lock me-1"></i> Trang Quản trị
+          </a>
+          <div class="dropdown">
+            <button class="btn btn-primary rounded-pill px-3 py-1 dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle"></i>
+              <span class="fw-semibold">Lưu Hữu Phát</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+              <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person me-2"></i>Hồ sơ cá nhân</a></li>
+              <li><a class="dropdown-item text-danger" href="login.html"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- BREADCRUMB -->
+  <div class="bg-white border-bottom py-2">
+    <div class="container">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb m-0 small">
+          <li class="breadcrumb-item"><a href="index.html" class="text-decoration-none">Trang chủ</a></li>
+          <li class="breadcrumb-item"><a href="events.html" class="text-decoration-none">Sự kiện</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Workshop Git & GitHub Actions CI/CD</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <!-- EVENT DETAIL BODY -->
+  <div class="container py-4 mb-5">
+    <div class="row g-4">
+      
+      <!-- Left Main Column -->
+      <div class="col-lg-8">
+        <div class="card card-uniclub border-0 p-4 p-md-5 mb-4">
+          <div class="d-flex gap-2 mb-3">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">Học thuật & Chuyên môn</span>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">Đang mở đăng ký</span>
+          </div>
+
+          <h2 class="fw-bold mb-3">Workshop Git & GitHub Actions CI/CD Thực Chiến</h2>
+
+          <div class="p-3 bg-light rounded-3 mb-4 d-flex flex-wrap gap-4 small text-secondary border">
+            <div><i class="bi bi-calendar3 me-1 text-primary"></i> <strong>Thời gian:</strong> 15/10/2026 | 08:00 - 11:30</div>
+            <div><i class="bi bi-geo-alt me-1 text-danger"></i> <strong>Địa điểm:</strong> Hội trường A2-301</div>
+            <div><i class="bi bi-person-badge me-1 text-info"></i> <strong>Đơn vị chủ trì:</strong> Ban Chuyên môn UniClub</div>
+          </div>
+
+          <h5 class="fw-bold mb-3">Mục tiêu & Giới thiệu chương trình</h5>
+          <p class="text-secondary leading-relaxed">
+            Trong các học phần công nghệ phần mềm và đồ án tốt nghiệp, việc cộng tác mã nguồn nhóm thường gặp nhiều trở ngại như xung đột code, không kiểm thử tự động, hoặc triển khai ứng dụng thủ công dễ gặp lỗi. Workshop này mang đến trải nghiệm thực chiến từng bước: từ thiết lập Git Branching, viết Unit Test với JUnit 5, đến cấu hình quy trình CI/CD hoàn chỉnh trên GitHub Actions.
+          </p>
+
+          <h5 class="fw-bold mt-4 mb-3">Nội dung chi tiết (Agenda)</h5>
+          <div class="border-start border-2 border-primary ps-3 ms-2 mb-4 space-y-3">
+            <div class="mb-3">
+              <span class="badge bg-secondary-subtle text-secondary me-2">08:00 - 08:30</span>
+              <strong class="d-block mt-1">Đón tiếp sinh viên & Điểm danh mã QR tự động</strong>
+              <small class="text-muted">Hội viên mở ứng dụng UniClub quét mã QR hiển thị tại màn chiếu hội trường.</small>
+            </div>
+            <div class="mb-3">
+              <span class="badge bg-secondary-subtle text-secondary me-2">08:30 - 09:45</span>
+              <strong class="d-block mt-1">Phần 1: Chuẩn hóa Git Branching Model & Branch Protection Rules</strong>
+              <small class="text-muted">Quy tắc nhánh main/develop/feature, cách tạo Pull Request và review chéo giữa các thành viên.</small>
+            </div>
+            <div class="mb-3">
+              <span class="badge bg-secondary-subtle text-secondary me-2">09:45 - 10:45</span>
+              <strong class="d-block mt-1">Phần 2: Xây dựng Pipeline CI/CD tự động bằng GitHub Actions</strong>
+              <small class="text-muted">Cấu hình file YAML tự động biên dịch Maven, chạy JUnit Test và đóng gói file WAR triển khai Tomcat.</small>
+            </div>
+            <div>
+              <span class="badge bg-secondary-subtle text-secondary me-2">10:45 - 11:30</span>
+              <strong class="d-block mt-1">Hỏi đáp trực tiếp (Q&A) & Trao chứng nhận tham gia</strong>
+              <small class="text-muted">Giải đáp các vướng mắc đồ án và cộng điểm hoạt động phong trào CLB.</small>
+            </div>
+          </div>
+
+          <h5 class="fw-bold mt-4 mb-2">Quyền lợi khi tham dự</h5>
+          <ul class="text-secondary small">
+            <li>Được cộng <strong>+5 điểm rèn luyện</strong> học kỳ I năm học 2026-2027.</li>
+            <li>Được cấp mã nguồn mẫu (Starter Template) cấu hình sẵn GitHub Actions.</li>
+            <li>Được cấp giấy chứng nhận tham dự workshop từ Ban Chủ nhiệm CLB.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right Column: Registration Card -->
+      <div class="col-lg-4">
+        <div class="card card-uniclub border-0 p-4 sticky-top" style="top: 90px;">
+          <h5 class="fw-bold mb-3">Tình trạng đăng ký</h5>
+
+          <div class="mb-3">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+              <span>Số chỗ đã đăng ký:</span>
+              <span class="fw-bold text-dark">68 / 100</span>
+            </div>
+            <div class="progress" style="height: 8px;">
+              <div class="progress-bar bg-primary" role="progressbar" style="width: 68%;"></div>
+            </div>
+            <small class="text-success fw-bold d-block mt-1"><i class="bi bi-check-circle me-1"></i>Còn lại 32 suất đăng ký</small>
+          </div>
+
+          <hr>
+
+          <div class="mb-4">
+            <h6 class="fw-bold small mb-2">Hình thức tham dự</h6>
+            <div class="p-2 border rounded-3 bg-light small mb-2">
+              <i class="bi bi-geo-alt-fill text-danger me-1"></i> <strong>Trực tiếp:</strong> Hội trường A2-301
+            </div>
+            <div class="p-2 border rounded-3 bg-light small">
+              <i class="bi bi-camera-video-fill text-primary me-1"></i> <strong>Trực tuyến:</strong> Kênh MS Teams (UniClub)
+            </div>
+          </div>
+
+          <button id="btnJoinEventDetail" class="btn btn-primary w-100 py-2.5 rounded-pill fw-bold shadow-sm mb-2" data-bs-toggle="modal" data-bs-target="#registerEventModal">
+            <i class="bi bi-pencil-square me-1"></i> Đăng ký tham gia ngay
+          </button>
+          
+          <a href="checkin.html" class="btn btn-outline-success w-100 py-2 rounded-pill fw-bold small">
+            <i class="bi bi-qr-code-scan me-1"></i> Điểm danh sự kiện này
+          </a>
+
+          <div class="mt-4 p-3 bg-light rounded-3 border text-center">
+            <small class="text-muted d-block mb-1">Cần hỗ trợ thông tin?</small>
+            <span class="small fw-bold text-dark"><i class="bi bi-telephone-fill me-1 text-primary"></i> Hotline: 0912.345.601</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- REGISTER EVENT MODAL -->
+  <div class="modal fade" id="registerEventModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold">Xác nhận đăng ký tham dự</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="eventRegistrationForm">
+          <div class="modal-body py-4">
+            <div class="alert alert-info py-2 small d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-info-circle-fill fs-5"></i>
+              <span>Hệ thống sẽ ghi nhận đăng ký của bạn ở trạng thái "Chờ duyệt".</span>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Sự kiện</label>
+              <input type="text" class="form-control" value="Workshop Git & GitHub Actions CI/CD Thực Chiến" readonly>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label small fw-bold">Họ và tên</label>
+                <input type="text" class="form-control" value="Lưu Hữu Phát" readonly>
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-bold">MSSV</label>
+                <input type="text" class="form-control font-monospace" value="2374820143" readonly>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Hình thức tham gia *</label>
+              <div class="d-flex gap-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="participationFormat" id="formatOff" value="Trực tiếp" checked>
+                  <label class="form-check-label small" for="formatOff">Trực tiếp tại Hội trường A2-301</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="participationFormat" id="formatOn" value="Trực tuyến">
+                  <label class="form-check-label small" for="formatOn">Trực tuyến qua Teams</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Xác nhận Đăng ký</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="uniclub-footer">
+    <div class="container text-center small text-muted">
+      Bản quyền © 2026 UniClub Hub · Hệ thống Quản lý Câu lạc bộ Sinh viên.
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/events.js"></script>
+</body>
+</html>

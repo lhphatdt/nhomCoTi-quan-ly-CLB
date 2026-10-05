@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Thông báo - UniClub Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-light">
+
+  <div class="admin-wrapper">
+    
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar shadow-sm">
+      <div class="p-3 border-bottom border-secondary-subtle d-flex align-items-center justify-content-between">
+        <a href="dashboard.html" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+          <span class="navbar-brand-badge" style="width: 34px; height: 34px; font-size: 0.9rem;">UC</span>
+          <div>
+            <span class="fw-bold fs-6 d-block leading-none">UniClub Admin</span>
+            <small class="text-secondary" style="font-size: 0.65rem;">Quản trị CLB Toàn diện</small>
+          </div>
+        </a>
+        <button class="btn btn-sm btn-dark d-lg-none" id="adminSidebarToggle"><i class="bi bi-x fs-5"></i></button>
+      </div>
+
+      <div class="overflow-y-auto flex-grow-1 py-2">
+        <div class="sidebar-heading">Tổng quan</div>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+        <div class="sidebar-heading">Hoạt động & Hội viên</div>
+        <a href="members.html" class="nav-link"><i class="bi bi-people"></i> Quản lý Hội viên</a>
+        <a href="events.html" class="nav-link"><i class="bi bi-calendar-event"></i> Quản lý Sự kiện</a>
+        <a href="registrations.html" class="nav-link"><i class="bi bi-check2-square"></i> Duyệt Đăng ký</a>
+        <a href="checkin.html" class="nav-link"><i class="bi bi-qr-code-scan"></i> Điểm danh QR</a>
+        <a href="membership-requests.html" class="nav-link"><i class="bi bi-person-plus"></i> Đơn Gia nhập CLB</a>
+
+        <div class="sidebar-heading">CƠ CẤU & TỔ CHỨC</div>
+        <a href="departments.html" class="nav-link"><i class="bi bi-diagram-3"></i> Ban / Bộ phận</a>
+        <a href="positions.html" class="nav-link"><i class="bi bi-award"></i> Chức vụ</a>
+        <a href="terms.html" class="nav-link"><i class="bi bi-calendar-range"></i> Nhiệm kỳ</a>
+        <a href="assignments.html" class="nav-link"><i class="bi bi-person-gear"></i> Phân công nhân sự</a>
+
+        <div class="sidebar-heading">NỘI DUNG & BÁO CÁO</div>
+        <a href="posts.html" class="nav-link"><i class="bi bi-file-earmark-post"></i> Bài viết</a>
+        <a href="notifications.html" class="nav-link active"><i class="bi bi-bell"></i> Thông báo</a>
+        <a href="reports.html" class="nav-link"><i class="bi bi-graph-up"></i> Báo cáo thống kê</a>
+
+        <div class="sidebar-heading">BẢO MẬT & SESSION</div>
+        <a href="admin-sessions.html" class="nav-link"><i class="bi bi-shield-lock"></i> Single Admin Session</a>
+        <a href="trusted-devices.html" class="nav-link"><i class="bi bi-laptop"></i> Thiết bị tin cậy</a>
+        <a href="audit-log.html" class="nav-link"><i class="bi bi-journal-text"></i> Audit Log bất biến</a>
+      </div>
+
+      <div class="p-3 border-top border-secondary-subtle">
+        <a href="../index.html" class="btn btn-sm btn-outline-light w-100 rounded-pill small">
+          <i class="bi bi-arrow-left me-1"></i> Giao diện Hội viên
+        </a>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="admin-content">
+      
+      <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-2 border-bottom gap-2">
+        <div>
+          <h4 class="fw-bold text-dark m-0">Quản lý & Phát Thông Báo Toàn CLB</h4>
+          <p class="text-muted small m-0">Gửi thông báo đẩy đến tất cả hội viên hoặc nhóm ban chuyên môn cụ thể</p>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4">
+        
+        <!-- Broadcast Form -->
+        <div class="col-lg-6">
+          <div class="card card-uniclub border-0 shadow-sm p-4 h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-send text-primary me-2"></i>Phát thông báo mới</h5>
+
+            <form class="needs-validation" data-success-msg="Đã gửi thông báo tới các hội viên thành công!" novalidate>
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Tiêu đề thông báo *</label>
+                <input type="text" class="form-control" placeholder="Nhập tiêu đề thông báo..." required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Đối tượng nhận thông báo *</label>
+                <select class="form-select" required>
+                  <option selected value="ALL">Toàn thể hội viên (10 người)</option>
+                  <option value="Ban Chuyên môn">Chỉ Ban Chuyên môn</option>
+                  <option value="Ban Sự kiện">Chỉ Ban Sự kiện</option>
+                  <option value="Ban Truyền thông">Chỉ Ban Truyền thông</option>
+                  <option value="Ban Đối ngoại">Chỉ Ban Đối ngoại</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Mức độ ưu tiên</label>
+                <select class="form-select">
+                  <option value="NORMAL" selected>Bình thường</option>
+                  <option value="HIGH">Khẩn cấp (Hiện thông báo đỏ)</option>
+                </select>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label small fw-bold">Nội dung chi tiết *</label>
+                <textarea class="form-control" rows="4" placeholder="Nhập nội dung thông báo gửi đến sinh viên..." required></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                <i class="bi bi-broadcast me-1"></i> Phát thông báo ngay
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- History of Sent Notifications -->
+        <div class="col-lg-6">
+          <div class="card card-uniclub border-0 shadow-sm p-4 h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-clock-history text-secondary me-2"></i>Thông báo đã gửi gần đây</h5>
+            
+            <div class="list-group list-group-flush small">
+              <div class="list-group-item px-0 py-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <strong class="text-dark">Nhắc lịch họp toàn thể CLB Tháng 10</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">1 ngày trước</span>
+                </div>
+                <p class="text-secondary m-0">Gửi đến: <span class="badge bg-light text-dark border">Toàn thể hội viên</span> · Người gửi: Nguyễn Phương Linh</p>
+              </div>
+
+              <div class="list-group-item px-0 py-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <strong class="text-dark">Phân công trực bàn tiếp nhận đồ quyên góp</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">3 ngày trước</span>
+                </div>
+                <p class="text-secondary m-0">Gửi đến: <span class="badge bg-light text-dark border">Ban Sự kiện</span> · Người gửi: Nguyễn Ngọc Hoa</p>
+              </div>
+
+              <div class="list-group-item px-0 py-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <strong class="text-dark">Chốt kịch bản Slide Workshop Git CI/CD</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">5 ngày trước</span>
+                </div>
+                <p class="text-secondary m-0">Gửi đến: <span class="badge bg-light text-dark border">Ban Chuyên môn</span> · Người gửi: Lưu Hữu Phát</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script src="../assets/js/validation.js"></script>
+</body>
+</html>

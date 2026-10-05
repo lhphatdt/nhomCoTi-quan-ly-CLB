@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chi tiết Hội viên - UniClub Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-light">
+
+  <div class="admin-wrapper">
+    
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar shadow-sm">
+      <div class="p-3 border-bottom border-secondary-subtle d-flex align-items-center justify-content-between">
+        <a href="dashboard.html" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+          <span class="navbar-brand-badge" style="width: 34px; height: 34px; font-size: 0.9rem;">UC</span>
+          <div>
+            <span class="fw-bold fs-6 d-block leading-none">UniClub Admin</span>
+            <small class="text-secondary" style="font-size: 0.65rem;">Quản trị CLB Toàn diện</small>
+          </div>
+        </a>
+        <button class="btn btn-sm btn-dark d-lg-none" id="adminSidebarToggle"><i class="bi bi-x fs-5"></i></button>
+      </div>
+
+      <div class="overflow-y-auto flex-grow-1 py-2">
+        <div class="sidebar-heading">Tổng quan</div>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+        <div class="sidebar-heading">Hoạt động & Hội viên</div>
+        <a href="members.html" class="nav-link active"><i class="bi bi-people"></i> Quản lý Hội viên</a>
+        <a href="events.html" class="nav-link"><i class="bi bi-calendar-event"></i> Quản lý Sự kiện</a>
+        <a href="registrations.html" class="nav-link"><i class="bi bi-check2-square"></i> Duyệt Đăng ký</a>
+        <a href="checkin.html" class="nav-link"><i class="bi bi-qr-code-scan"></i> Điểm danh QR</a>
+        <a href="membership-requests.html" class="nav-link"><i class="bi bi-person-plus"></i> Đơn Gia nhập CLB</a>
+
+        <div class="sidebar-heading">Cơ cấu & Tổ chức</div>
+        <a href="departments.html" class="nav-link"><i class="bi bi-diagram-3"></i> Ban / Bộ phận</a>
+        <a href="positions.html" class="nav-link"><i class="bi bi-award"></i> Chức vụ</a>
+        <a href="terms.html" class="nav-link"><i class="bi bi-calendar-range"></i> Nhiệm kỳ</a>
+        <a href="assignments.html" class="nav-link"><i class="bi bi-person-gear"></i> Phân công nhân sự</a>
+
+        <div class="sidebar-heading">Nội dung & Báo cáo</div>
+        <a href="posts.html" class="nav-link"><i class="bi bi-file-earmark-post"></i> Bài viết</a>
+        <a href="notifications.html" class="nav-link"><i class="bi bi-bell"></i> Thông báo</a>
+        <a href="reports.html" class="nav-link"><i class="bi bi-graph-up"></i> Báo cáo thống kê</a>
+
+        <div class="sidebar-heading">Bảo mật & Session</div>
+        <a href="admin-sessions.html" class="nav-link"><i class="bi bi-shield-lock"></i> Single Admin Session</a>
+        <a href="trusted-devices.html" class="nav-link"><i class="bi bi-laptop"></i> Thiết bị tin cậy</a>
+        <a href="audit-log.html" class="nav-link"><i class="bi bi-journal-text"></i> Audit Log bất biến</a>
+      </div>
+
+      <div class="p-3 border-top border-secondary-subtle">
+        <a href="../index.html" class="btn btn-sm btn-outline-light w-100 rounded-pill small">
+          <i class="bi bi-arrow-left me-1"></i> Giao diện Hội viên
+        </a>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="admin-content">
+      
+      <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <a href="members.html" class="btn btn-sm btn-outline-secondary rounded-pill me-1"><i class="bi bi-arrow-left"></i></a>
+          <h4 class="fw-bold text-dark m-0">Hồ sơ Chi tiết Hội viên: Lưu Hữu Phát</h4>
+        </div>
+        <span class="badge badge-status-active px-3 py-2 rounded-pill fw-bold">Tài khoản Hoạt động</span>
+      </div>
+
+      <div class="row g-4">
+        
+        <!-- Left Column -->
+        <div class="col-lg-4">
+          <div class="card card-uniclub border-0 shadow-sm p-4 text-center mb-4">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center display-5 fw-bold mx-auto mb-3 shadow-sm" style="width: 80px; height: 80px;">
+              P
+            </div>
+            <h5 class="fw-bold m-0 text-dark">Lưu Hữu Phát</h5>
+            <span class="text-muted small font-monospace d-block mb-2">MSSV: 2374820143</span>
+            <span class="badge bg-primary px-3 py-1 rounded-pill mb-3">Trưởng ban Chuyên môn</span>
+            
+            <div class="p-3 bg-light rounded-3 border text-start small">
+              <div class="mb-2"><i class="bi bi-envelope text-primary me-2"></i>phat.lh@uniclub.vn</div>
+              <div class="mb-2"><i class="bi bi-telephone text-primary me-2"></i>0912345602</div>
+              <div class="mb-2"><i class="bi bi-mortarboard text-primary me-2"></i>Viện CNTT - Lớp DHIT20A</div>
+              <div><i class="bi bi-calendar-check text-primary me-2"></i>Gia nhập: 01/09/2024</div>
+            </div>
+          </div>
+
+          <div class="card card-uniclub border-0 shadow-sm p-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-award text-warning me-2"></i>Điểm rèn luyện phong trào</h6>
+            <div class="display-5 fw-bold text-success mb-1">95 / 100</div>
+            <small class="text-muted d-block mb-3">Đóng góp tích cực và hoàn thành xuất sắc nhiệm vụ Ban</small>
+            <button class="btn btn-sm btn-outline-success w-100 rounded-pill fw-bold" onclick="showToast('Đã cộng +5 điểm chuyên cần cho hội viên', 'success')">
+              <i class="bi bi-plus-circle me-1"></i> Cộng điểm hoạt động
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Column: Assignments & Activity History -->
+        <div class="col-lg-8">
+          
+          <!-- Assignment History Card -->
+          <div class="card card-uniclub border-0 shadow-sm p-4 mb-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-diagram-3 text-primary me-2"></i>Lịch sử Phân công & Chức vụ</h6>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle small mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Nhiệm kỳ</th>
+                    <th>Ban chuyên môn</th>
+                    <th>Chức vụ</th>
+                    <th>Thời gian</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="fw-bold">2026 - 2027</td>
+                    <td>Ban Chuyên môn</td>
+                    <td><span class="badge bg-info text-dark">Trưởng ban</span></td>
+                    <td>01/09/2026 - Hiện tại</td>
+                    <td><span class="badge bg-success">Đương nhiệm</span></td>
+                  </tr>
+                  <tr>
+                    <td>2025 - 2026</td>
+                    <td>Ban Chuyên môn</td>
+                    <td>Thành viên nòng cốt</td>
+                    <td>01/09/2025 - 31/08/2026</td>
+                    <td><span class="badge bg-secondary">Hoàn thành</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Attended Events Table -->
+          <div class="card card-uniclub border-0 shadow-sm p-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-calendar-check text-success me-2"></i>Sự kiện đã tham gia & Check-in QR</h6>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle small mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Tên sự kiện</th>
+                    <th>Ngày tổ chức</th>
+                    <th>Hình thức</th>
+                    <th>Thời gian Check-in</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="fw-bold">Workshop Git & GitHub Actions CI/CD Thực Chiến</td>
+                    <td>15/10/2026</td>
+                    <td>Trực tiếp</td>
+                    <td class="font-monospace">08:15:30</td>
+                    <td><span class="badge badge-status-attended">Đã điểm danh QR</span></td>
+                  </tr>
+                  <tr>
+                    <td class="fw-bold">Sinh hoạt CLB Định kỳ Tháng 10</td>
+                    <td>18/10/2026</td>
+                    <td>Trực tiếp</td>
+                    <td class="font-monospace">18:40:12</td>
+                    <td><span class="badge badge-status-attended">Đã điểm danh QR</span></td>
+                  </tr>
+                  <tr>
+                    <td class="fw-bold">Buổi Chia Sẻ Kỹ Năng Phỏng Vấn Doanh Nghiệp</td>
+                    <td>12/11/2026</td>
+                    <td>Trực tiếp</td>
+                    <td class="font-monospace">09:05:00</td>
+                    <td><span class="badge badge-status-attended">Đã điểm danh QR</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+</body>
+</html>

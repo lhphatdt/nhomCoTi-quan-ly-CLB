@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UniClub Hub - Hệ thống Quản lý Câu lạc bộ Sinh viên</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-uniclub sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-dark" href="index.html">
+        <span class="navbar-brand-badge">UC</span>
+        <div>
+          <span class="fs-5 tracking-tight d-block leading-none">UniClub Hub</span>
+          <small class="text-muted fw-normal" style="font-size: 0.65rem;">Quản lý CLB Sinh viên</small>
+        </div>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+          <li class="nav-item"><a class="nav-link active" href="index.html"><i class="bi bi-house-door me-1"></i> Trang chủ</a></li>
+          <li class="nav-item"><a class="nav-link" href="events.html"><i class="bi bi-calendar-event me-1"></i> Sự kiện</a></li>
+          <li class="nav-item"><a class="nav-link" href="calendar.html"><i class="bi bi-calendar3 me-1"></i> Lịch tháng</a></li>
+          <li class="nav-item"><a class="nav-link" href="checkin.html"><i class="bi bi-qr-code-scan me-1"></i> Điểm danh QR</a></li>
+          <li class="nav-item"><a class="nav-link" href="my-registrations.html"><i class="bi bi-card-checklist me-1"></i> Lịch sử tham gia</a></li>
+          <li class="nav-item"><a class="nav-link" href="news.html"><i class="bi bi-newspaper me-1"></i> Tin tức</a></li>
+          <li class="nav-item"><a class="nav-link" href="membership.html"><i class="bi bi-person-plus me-1"></i> Gia nhập CLB</a></li>
+        </ul>
+
+        <div class="d-flex align-items-center gap-2">
+          <a href="notifications.html" class="btn btn-outline-secondary position-relative rounded-pill px-3 py-1">
+            <i class="bi bi-bell"></i>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
+              3
+            </span>
+          </a>
+          <a href="admin/dashboard.html" class="btn btn-outline-primary rounded-pill px-3 py-1 fw-bold">
+            <i class="bi bi-shield-lock me-1"></i> Trang Quản trị
+          </a>
+          <div class="dropdown">
+            <button class="btn btn-primary rounded-pill px-3 py-1 dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle"></i>
+              <span class="fw-semibold">Lưu Hữu Phát</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+              <li><span class="dropdown-item-text text-muted small">MSSV: 2374820143</span></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person me-2"></i>Hồ sơ cá nhân</a></li>
+              <li><a class="dropdown-item" href="feedback.html"><i class="bi bi-star me-2"></i>Đánh giá sự kiện</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="login.html"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO SECTION -->
+  <section class="py-5 bg-white border-bottom">
+    <div class="container py-4">
+      <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill mb-3 fw-bold">
+            <i class="bi bi-stars me-1"></i> Nền Tảng Chuyển Đổi Số Câu Lạc Bộ Sinh Viên
+          </span>
+          <h1 class="display-5 fw-bold text-dark mb-3">
+            Kết nối sinh viên, bùng nổ đam mê với <span class="text-primary">UniClub</span>
+          </h1>
+          <p class="lead text-muted mb-4">
+            Hệ thống quản lý toàn diện: Tra cứu sự kiện học thuật, đăng ký tham gia trực tuyến, điểm danh QR tự động và theo dõi lịch sử cống hiến cho phong trào sinh viên.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="events.html" class="btn btn-primary btn-lg rounded-pill px-4 fw-bold shadow-sm">
+              <i class="bi bi-compass me-1"></i> Khám phá Sự kiện
+            </a>
+            <a href="membership.html" class="btn btn-outline-secondary btn-lg rounded-pill px-4 fw-bold">
+              <i class="bi bi-send me-1"></i> Nộp đơn Gia nhập CLB
+            </a>
+            <a href="admin/dashboard.html" class="btn btn-dark btn-lg rounded-pill px-4 fw-bold">
+              <i class="bi bi-speedometer2 me-1"></i> Bảng điều khiển Admin
+            </a>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="p-4 bg-light rounded-4 border shadow-sm">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+              <h6 class="fw-bold m-0"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Chỉ số Hoạt động CLB</h6>
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Học kỳ I 2026</span>
+            </div>
+            <div class="row g-3">
+              <div class="col-6">
+                <div class="p-3 bg-white rounded-3 border text-center">
+                  <div class="display-6 fw-bold text-primary">10</div>
+                  <small class="text-muted fw-semibold">Hội viên nòng cốt</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-3 bg-white rounded-3 border text-center">
+                  <div class="display-6 fw-bold text-success">05</div>
+                  <small class="text-muted fw-semibold">Sự kiện học kỳ</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-3 bg-white rounded-3 border text-center">
+                  <div class="display-6 fw-bold text-warning">92%</div>
+                  <small class="text-muted fw-semibold">Tỷ lệ điểm danh</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-3 bg-white rounded-3 border text-center">
+                  <div class="display-6 fw-bold text-info">05</div>
+                  <small class="text-muted fw-semibold">Ban chuyên môn</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURED EVENTS SECTION -->
+  <section class="py-5">
+    <div class="container">
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+          <h3 class="fw-bold text-dark m-0">Sự kiện Sắp Diễn Ra</h3>
+          <p class="text-muted m-0 small">Đăng ký tham gia ngay để nhận điểm rèn luyện và chứng nhận</p>
+        </div>
+        <a href="events.html" class="btn btn-outline-primary rounded-pill px-3 py-1 fw-bold">
+          Xem tất cả <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+
+      <div class="row g-4">
+        <!-- Event 1 -->
+        <div class="col-md-6 col-lg-4">
+          <div class="card card-uniclub h-100 overflow-hidden">
+            <div class="position-relative">
+              <div class="bg-primary text-white p-4 text-center" style="height: 140px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e40af, #3b82f6);">
+                <i class="bi bi-git display-3"></i>
+              </div>
+              <span class="position-absolute top-0 end-0 m-3 badge bg-light text-primary fw-bold shadow-sm">
+                Học thuật
+              </span>
+            </div>
+            <div class="card-body d-flex flex-column">
+              <h5 class="fw-bold mb-2">Workshop Git & GitHub Actions CI/CD Thực Chiến</h5>
+              <p class="text-muted small mb-3 flex-grow-1">
+                Hướng dẫn thiết lập pipeline tự động kiểm thử và triển khai ứng dụng web cho đồ án sinh viên.
+              </p>
+              <div class="small text-secondary mb-2">
+                <div><i class="bi bi-calendar3 me-2 text-primary"></i> 15/10/2026 | 08:00 - 11:30</div>
+                <div><i class="bi bi-geo-alt me-2 text-danger"></i> Hội trường A2-301</div>
+                <div><i class="bi bi-people me-2 text-success"></i> Còn lại: <strong>32/100 chỗ</strong></div>
+              </div>
+              <div class="d-flex gap-2 mt-3 pt-3 border-top">
+                <a href="event-detail.html" class="btn btn-sm btn-outline-primary flex-grow-1 rounded-pill fw-bold">Chi tiết</a>
+                <button class="btn btn-sm btn-primary flex-grow-1 rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#registerEventModal">
+                  Đăng ký
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event 2 -->
+        <div class="col-md-6 col-lg-4">
+          <div class="card card-uniclub h-100 overflow-hidden">
+            <div class="position-relative">
+              <div class="bg-success text-white p-4 text-center" style="height: 140px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #065f46, #10b981);">
+                <i class="bi bi-heart-pulse display-3"></i>
+              </div>
+              <span class="position-absolute top-0 end-0 m-3 badge bg-light text-success fw-bold shadow-sm">
+                Tình nguyện
+              </span>
+            </div>
+            <div class="card-body d-flex flex-column">
+              <h5 class="fw-bold mb-2">Chiến dịch Tình nguyện Mùa Thu 2026</h5>
+              <p class="text-muted small mb-3 flex-grow-1">
+                Quyên góp đồ dùng học tập, sách truyện và hỗ trợ các em nhỏ có hoàn cảnh khó khăn tại Ba Vì.
+              </p>
+              <div class="small text-secondary mb-2">
+                <div><i class="bi bi-calendar3 me-2 text-primary"></i> 22/10/2026 | Cả ngày</div>
+                <div><i class="bi bi-geo-alt me-2 text-danger"></i> Huyện Ba Vì, Hà Nội</div>
+                <div><i class="bi bi-people me-2 text-success"></i> Còn lại: <strong>12/50 chỗ</strong></div>
+              </div>
+              <div class="d-flex gap-2 mt-3 pt-3 border-top">
+                <a href="event-detail.html" class="btn btn-sm btn-outline-primary flex-grow-1 rounded-pill fw-bold">Chi tiết</a>
+                <button class="btn btn-sm btn-primary flex-grow-1 rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#registerEventModal">
+                  Đăng ký
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event 3 -->
+        <div class="col-md-6 col-lg-4">
+          <div class="card card-uniclub h-100 overflow-hidden">
+            <div class="position-relative">
+              <div class="bg-warning text-white p-4 text-center" style="height: 140px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #b45309, #f59e0b);">
+                <i class="bi bi-trophy display-3"></i>
+              </div>
+              <span class="position-absolute top-0 end-0 m-3 badge bg-light text-danger fw-bold shadow-sm">
+                Đã hết chỗ
+              </span>
+            </div>
+            <div class="card-body d-flex flex-column">
+              <h5 class="fw-bold mb-2">Hackathon UniClub DevCup 2026</h5>
+              <p class="text-muted small mb-3 flex-grow-1">
+                Sân chơi lập trình ứng dụng 12 giờ giải quyết bài toán thực tế cho cộng đồng sinh viên đại học.
+              </p>
+              <div class="small text-secondary mb-2">
+                <div><i class="bi bi-calendar3 me-2 text-primary"></i> 05/11/2026 | 08:00 - 20:00</div>
+                <div><i class="bi bi-geo-alt me-2 text-danger"></i> Khu Công nghệ Cao Lab 402</div>
+                <div><i class="bi bi-people me-2 text-danger"></i> <strong>Đã đủ 60/60 chỗ</strong></div>
+              </div>
+              <div class="d-flex gap-2 mt-3 pt-3 border-top">
+                <a href="event-detail.html" class="btn btn-sm btn-outline-primary flex-grow-1 rounded-pill fw-bold">Chi tiết</a>
+                <button class="btn btn-sm btn-secondary flex-grow-1 rounded-pill fw-bold disabled" disabled>
+                  Hết chỗ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK ACTION BANNER -->
+  <section class="py-5 bg-white border-top">
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="p-4 rounded-4 border bg-light h-100 text-center">
+            <div class="rounded-circle bg-primary text-white mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+              <i class="bi bi-qr-code-scan fs-3"></i>
+            </div>
+            <h5 class="fw-bold">Điểm danh Nhanh QR</h5>
+            <p class="text-muted small mb-3">Tự điểm danh khi tham gia sự kiện thông qua mã QR động cập nhật mỗi 30 giây.</p>
+            <a href="checkin.html" class="btn btn-outline-primary rounded-pill px-4 fw-bold">Vào quét mã</a>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-4 rounded-4 border bg-light h-100 text-center">
+            <div class="rounded-circle bg-success text-white mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+              <i class="bi bi-calendar-week fs-3"></i>
+            </div>
+            <h5 class="fw-bold">Lịch Hoạt Động Tháng</h5>
+            <p class="text-muted small mb-3">Xem lịch biểu diễn ra các buổi sinh hoạt, workshop và hạn đăng ký trực quan.</p>
+            <a href="calendar.html" class="btn btn-outline-success rounded-pill px-4 fw-bold">Xem lịch biểu</a>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-4 rounded-4 border bg-light h-100 text-center">
+            <div class="rounded-circle bg-warning text-white mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+              <i class="bi bi-person-badge fs-3"></i>
+            </div>
+            <h5 class="fw-bold">Cơ cấu & Gia nhập CLB</h5>
+            <p class="text-muted small mb-3">Nộp đơn ứng tuyển gia nhập 5 Ban chuyên môn để phát triển kỹ năng cá nhân.</p>
+            <a href="membership.html" class="btn btn-outline-warning rounded-pill px-4 fw-bold text-dark">Ứng tuyển ngay</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REGISTER EVENT MODAL -->
+  <div class="modal fade" id="registerEventModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold" id="modalEventTitle">Đăng ký tham gia sự kiện</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="eventRegistrationForm">
+          <div class="modal-body py-4">
+            <div class="alert alert-info py-2 small d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-info-circle-fill fs-5"></i>
+              <span>Vui lòng kiểm tra lại thông tin sinh viên trước khi gửi yêu cầu đăng ký.</span>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Họ và tên</label>
+              <input type="text" class="form-control" value="Lưu Hữu Phát" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Mã số sinh viên (MSSV)</label>
+              <input type="text" class="form-control font-monospace" value="2374820143" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Hình thức tham gia *</label>
+              <div class="d-flex gap-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="participationFormat" id="formatOffline" value="Trực tiếp" checked>
+                  <label class="form-check-label small" for="formatOffline">
+                    <i class="bi bi-building me-1"></i> Trực tiếp tại phòng
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="participationFormat" id="formatOnline" value="Trực tuyến">
+                  <label class="form-check-label small" for="formatOnline">
+                    <i class="bi bi-laptop me-1"></i> Trực tuyến (MS Teams)
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-bold">Ghi chú thêm (nếu có)</label>
+              <textarea class="form-control" rows="2" placeholder="Ví dụ: Mong muốn nhận slide bài giảng trước buổi học..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Xác nhận Đăng ký</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="uniclub-footer">
+    <div class="container">
+      <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="navbar-brand-badge" style="width: 32px; height: 32px; font-size: 0.85rem;">UC</span>
+            <span class="fs-5 fw-bold text-dark">UniClub Hub</span>
+          </div>
+          <p class="small text-muted mb-2">
+            Hệ thống Quản lý Câu lạc bộ Sinh viên và Tự động hóa CI/CD bằng GitHub Actions.
+          </p>
+          <p class="small text-muted m-0">
+            Đề tài học phần Các vấn đề hiện đại của CNTT (DHIT20) - Viện Công nghệ Thông tin.
+          </p>
+        </div>
+        <div class="col-6 col-lg-3">
+          <h6 class="fw-bold text-dark mb-2">Phân hệ Hội viên</h6>
+          <ul class="list-unstyled small">
+            <li><a href="events.html" class="text-decoration-none text-muted">Danh sách sự kiện</a></li>
+            <li><a href="calendar.html" class="text-decoration-none text-muted">Lịch hoạt động</a></li>
+            <li><a href="checkin.html" class="text-decoration-none text-muted">Điểm danh QR</a></li>
+            <li><a href="my-registrations.html" class="text-decoration-none text-muted">Lịch sử đăng ký</a></li>
+            <li><a href="membership.html" class="text-decoration-none text-muted">Gia nhập CLB</a></li>
+          </ul>
+        </div>
+        <div class="col-6 col-lg-4">
+          <h6 class="fw-bold text-dark mb-2">Phân hệ Quản trị (Admin)</h6>
+          <ul class="list-unstyled small">
+            <li><a href="admin/dashboard.html" class="text-decoration-none text-muted">Dashboard Quản trị</a></li>
+            <li><a href="admin/members.html" class="text-decoration-none text-muted">Quản lý Hội viên</a></li>
+            <li><a href="admin/registrations.html" class="text-decoration-none text-muted">Duyệt Đăng ký tham gia</a></li>
+            <li><a href="admin/admin-sessions.html" class="text-decoration-none text-muted">Single Active Session & Kickout</a></li>
+            <li><a href="admin/trusted-devices.html" class="text-decoration-none text-muted">Thiết bị tin cậy (Trusted Devices)</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="text-center pt-3 border-top small text-muted">
+        Bản quyền © 2026 UniClub Hub. Thiết kế chuẩn HTML5 + CSS3 + Bootstrap 5 + JavaScript.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- App JS -->
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/events.js"></script>
+</body>
+</html>

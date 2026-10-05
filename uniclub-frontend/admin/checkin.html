@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Điểm danh Sự kiện - UniClub Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-light">
+
+  <div class="admin-wrapper">
+    
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar shadow-sm">
+      <div class="p-3 border-bottom border-secondary-subtle d-flex align-items-center justify-content-between">
+        <a href="dashboard.html" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+          <span class="navbar-brand-badge" style="width: 34px; height: 34px; font-size: 0.9rem;">UC</span>
+          <div>
+            <span class="fw-bold fs-6 d-block leading-none">UniClub Admin</span>
+            <small class="text-secondary" style="font-size: 0.65rem;">Quản trị CLB Toàn diện</small>
+          </div>
+        </a>
+        <button class="btn btn-sm btn-dark d-lg-none" id="adminSidebarToggle"><i class="bi bi-x fs-5"></i></button>
+      </div>
+
+      <div class="overflow-y-auto flex-grow-1 py-2">
+        <div class="sidebar-heading">Tổng quan</div>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+        <div class="sidebar-heading">Hoạt động & Hội viên</div>
+        <a href="members.html" class="nav-link"><i class="bi bi-people"></i> Quản lý Hội viên</a>
+        <a href="events.html" class="nav-link"><i class="bi bi-calendar-event"></i> Quản lý Sự kiện</a>
+        <a href="registrations.html" class="nav-link"><i class="bi bi-check2-square"></i> Duyệt Đăng ký</a>
+        <a href="checkin.html" class="nav-link active"><i class="bi bi-qr-code-scan"></i> Điểm danh QR</a>
+        <a href="membership-requests.html" class="nav-link"><i class="bi bi-person-plus"></i> Đơn Gia nhập CLB</a>
+
+        <div class="sidebar-heading">Cơ cấu & Tổ chức</div>
+        <a href="departments.html" class="nav-link"><i class="bi bi-diagram-3"></i> Ban / Bộ phận</a>
+        <a href="positions.html" class="nav-link"><i class="bi bi-award"></i> Chức vụ</a>
+        <a href="terms.html" class="nav-link"><i class="bi bi-calendar-range"></i> Nhiệm kỳ</a>
+        <a href="assignments.html" class="nav-link"><i class="bi bi-person-gear"></i> Phân công nhân sự</a>
+
+        <div class="sidebar-heading">Nội dung & Báo cáo</div>
+        <a href="posts.html" class="nav-link"><i class="bi bi-file-earmark-post"></i> Bài viết</a>
+        <a href="notifications.html" class="nav-link"><i class="bi bi-bell"></i> Thông báo</a>
+        <a href="reports.html" class="nav-link"><i class="bi bi-graph-up"></i> Báo cáo thống kê</a>
+
+        <div class="sidebar-heading">Bảo mật & Session</div>
+        <a href="admin-sessions.html" class="nav-link"><i class="bi bi-shield-lock"></i> Single Admin Session</a>
+        <a href="trusted-devices.html" class="nav-link"><i class="bi bi-laptop"></i> Thiết bị tin cậy</a>
+        <a href="audit-log.html" class="nav-link"><i class="bi bi-journal-text"></i> Audit Log bất biến</a>
+      </div>
+
+      <div class="p-3 border-top border-secondary-subtle">
+        <a href="../index.html" class="btn btn-sm btn-outline-light w-100 rounded-pill small">
+          <i class="bi bi-arrow-left me-1"></i> Giao diện Hội viên
+        </a>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="admin-content">
+      
+      <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-2 border-bottom gap-2">
+        <div>
+          <h4 class="fw-bold text-dark m-0">Quản lý Phiên Điểm Danh Sự kiện</h4>
+          <p class="text-muted small m-0">Chiếu mã QR động lên màn hình lớn và hỗ trợ điểm danh thủ công tại cửa</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showToast('Đã làm mới mã token QR cho sự kiện!', 'success')">
+            <i class="bi bi-arrow-clockwise me-1"></i> Đổi mã QR mới
+          </button>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4">
+        
+        <!-- QR Projector Box for Hall Screen -->
+        <div class="col-lg-5">
+          <div class="card card-uniclub border-0 shadow-sm p-4 text-center">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill mb-2 align-self-center">
+              Mã QR Động Chiếu Màn Hình
+            </span>
+            <h5 class="fw-bold mb-1">Workshop Git & GitHub Actions CI/CD</h5>
+            <small class="text-muted d-block mb-3">Thời gian: 15/10/2026 | Hội trường A2-301</small>
+
+            <div class="p-3 bg-white border rounded-4 d-inline-block shadow-sm my-2">
+              <!-- Visual Mock QR Image representation using Bootstrap Icons -->
+              <div style="width: 200px; height: 200px; background: #000; padding: 12px; border-radius: 12px; margin: 0 auto; display: flex; align-items: center; justify-content: center; position: relative;">
+                <div style="width: 100%; height: 100%; border: 4px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111;">
+                  <i class="bi bi-qr-code text-white" style="font-size: 8rem; line-height: 1;"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <span class="badge bg-light text-dark border font-monospace">Token: TK-2026-9812-LIVE</span>
+              <small class="text-muted d-block mt-1">Làm mới tự động sau: <strong class="text-primary">18 giây</strong></small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attendance Stats & Manual Checkin -->
+        <div class="col-lg-7">
+          <div class="card card-uniclub border-0 shadow-sm p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+              <h6 class="fw-bold m-0"><i class="bi bi-list-check text-primary me-2"></i>Tiến độ Check-in Hội trường</h6>
+              <span class="badge bg-success-subtle text-success border border-success-subtle">68 / 100 sinh viên có mặt</span>
+            </div>
+
+            <div class="progress mb-3" style="height: 12px;">
+              <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: 68%;">68%</div>
+            </div>
+
+            <h6 class="fw-bold small mb-2">Điểm danh thủ công nhanh theo MSSV:</h6>
+            <div class="input-group mb-4">
+              <input type="text" class="form-control font-monospace" placeholder="Nhập MSSV sinh viên (VD: 2374820101)..." id="manualMssvInput">
+              <button class="btn btn-primary fw-bold" onclick="const val = document.getElementById('manualMssvInput').value; if(val){ showToast(`Đã ghi nhận điểm danh THỦ CÔNG thành công cho MSSV ${val}!`, 'success'); document.getElementById('manualMssvInput').value=''; } else { showToast('Vui lòng nhập MSSV.', 'danger'); }">
+                <i class="bi bi-check-lg me-1"></i> Điểm danh ngay
+              </button>
+            </div>
+
+            <h6 class="fw-bold small mb-2">Lịch sử Check-in mới nhất:</h6>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle small mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Hội viên</th>
+                    <th>MSSV</th>
+                    <th>Thời gian</th>
+                    <th>Hình thức</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Lưu Hữu Phát</strong></td>
+                    <td class="font-monospace">2374820143</td>
+                    <td>08:15:30</td>
+                    <td><span class="badge bg-success">Mã QR</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Trần Văn An</strong></td>
+                    <td class="font-monospace">2374820088</td>
+                    <td>08:14:10</td>
+                    <td><span class="badge bg-success">Mã QR</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Đinh Quang Khải</strong></td>
+                    <td class="font-monospace">2374820104</td>
+                    <td>08:12:45</td>
+                    <td><span class="badge bg-secondary">Thủ công</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+</body>
+</html>

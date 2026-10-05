@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng ký tài khoản - UniClub Hub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="bg-light py-5">
+
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-9 col-lg-7">
+        
+        <div class="text-center mb-4">
+          <a href="index.html" class="d-inline-flex align-items-center gap-2 text-decoration-none mb-2">
+            <span class="navbar-brand-badge" style="width: 44px; height: 44px; font-size: 1.25rem;">UC</span>
+            <span class="fs-4 fw-bold text-dark">UniClub Hub</span>
+          </a>
+          <p class="text-muted small">Tạo tài khoản hội viên để tham gia hoạt động và tích lũy điểm rèn luyện</p>
+        </div>
+
+        <div class="card card-uniclub border-0 shadow-sm p-4 p-md-5">
+          <h4 class="fw-bold mb-1">Đăng ký tài khoản sinh viên</h4>
+          <p class="text-muted small mb-4">Vui lòng điền đầy đủ và chính xác các thông tin bắt buộc (*)</p>
+
+          <form action="login.html" method="GET" class="needs-validation" data-success-msg="Đăng ký tài khoản thành công! Bạn có thể đăng nhập ngay." novalidate>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Họ và tên *</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white text-muted"><i class="bi bi-person"></i></span>
+                  <input type="text" class="form-control" name="fullName" placeholder="Nguyễn Văn A" required minlength="3">
+                  <div class="invalid-feedback">Họ tên tối thiểu 3 ký tự.</div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Mã số sinh viên (MSSV) *</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white text-muted"><i class="bi bi-card-heading"></i></span>
+                  <input type="text" class="form-control font-monospace" name="mssv" placeholder="2374820..." required pattern="[A-Za-z0-9]{6,10}">
+                  <div class="invalid-feedback">MSSV gồm 6 - 10 ký tự chữ và số.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Email sinh viên *</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white text-muted"><i class="bi bi-envelope"></i></span>
+                  <input type="email" class="form-control" name="email" placeholder="student@uniclub.vn" required>
+                  <div class="invalid-feedback">Email không đúng định dạng.</div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Số điện thoại *</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white text-muted"><i class="bi bi-telephone"></i></span>
+                  <input type="tel" class="form-control" name="phone" placeholder="0912345678" required pattern="0[0-9]{9}">
+                  <div class="invalid-feedback">SĐT gồm 10 chữ số bắt đầu bằng 0.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Khoa / Viện đào tạo</label>
+                <select class="form-select">
+                  <option selected>Viện Công nghệ Thông tin</option>
+                  <option>Khoa Quản trị Kinh doanh</option>
+                  <option>Khoa Luật</option>
+                  <option>Khoa Truyền thông Đa phương tiện</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Ban chuyên môn quan tâm</label>
+                <select class="form-select">
+                  <option selected>Ban Chuyên môn (Lập trình, Nghiên cứu)</option>
+                  <option>Ban Sự kiện (Tổ chức hoạt động)</option>
+                  <option>Ban Truyền thông (Thiết kế, Content)</option>
+                  <option>Ban Đối ngoại (Tài trợ, Hậu cần)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Mật khẩu (tối thiểu 6 ký tự) *</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white text-muted"><i class="bi bi-lock"></i></span>
+                  <input type="password" class="form-control" name="password" placeholder="••••••••" required minlength="6">
+                  <button class="btn btn-outline-secondary btn-toggle-password" type="button"><i class="bi bi-eye"></i></button>
+                  <div class="invalid-feedback">Mật khẩu tối thiểu 6 ký tự.</div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Xác nhận mật khẩu *</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white text-muted"><i class="bi bi-lock-fill"></i></span>
+                  <input type="password" class="form-control" name="confirmPassword" placeholder="••••••••" required>
+                  <button class="btn btn-outline-secondary btn-toggle-password" type="button"><i class="bi bi-eye"></i></button>
+                  <div class="invalid-feedback">Mật khẩu xác nhận không khớp.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-check mb-4">
+              <input class="form-check-input" type="checkbox" id="termsCheck" required>
+              <label class="form-check-label small text-muted" for="termsCheck">
+                Tôi đồng ý với Điều lệ Sinh hoạt và Nội quy Bảo mật của CLB UniClub.
+              </label>
+              <div class="invalid-feedback">Bạn cần đồng ý với điều lệ để tiếp tục.</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2.5 rounded-pill fw-bold shadow-sm mb-3">
+              <i class="bi bi-person-plus-fill me-1"></i> Hoàn tất Đăng ký
+            </button>
+          </form>
+
+          <div class="text-center mt-3">
+            <span class="small text-muted">Đã có tài khoản?</span>
+            <a href="login.html" class="small fw-bold text-primary text-decoration-none ms-1">Đăng nhập</a>
+          </div>
+        </div>
+
+        <div class="text-center mt-4">
+          <a href="index.html" class="text-muted small text-decoration-none">
+            <i class="bi bi-arrow-left me-1"></i> Quay về trang chủ
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/validation.js"></script>
+</body>
+</html>

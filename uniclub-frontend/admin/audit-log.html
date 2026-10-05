@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Log Bất Biến - UniClub Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-light">
+
+  <div class="admin-wrapper">
+    
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar shadow-sm">
+      <div class="p-3 border-bottom border-secondary-subtle d-flex align-items-center justify-content-between">
+        <a href="dashboard.html" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+          <span class="navbar-brand-badge" style="width: 34px; height: 34px; font-size: 0.9rem;">UC</span>
+          <div>
+            <span class="fw-bold fs-6 d-block leading-none">UniClub Admin</span>
+            <small class="text-secondary" style="font-size: 0.65rem;">Quản trị CLB Toàn diện</small>
+          </div>
+        </a>
+        <button class="btn btn-sm btn-dark d-lg-none" id="adminSidebarToggle"><i class="bi bi-x fs-5"></i></button>
+      </div>
+
+      <div class="overflow-y-auto flex-grow-1 py-2">
+        <div class="sidebar-heading">Tổng quan</div>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+        <div class="sidebar-heading">Hoạt động & Hội viên</div>
+        <a href="members.html" class="nav-link"><i class="bi bi-people"></i> Quản lý Hội viên</a>
+        <a href="events.html" class="nav-link"><i class="bi bi-calendar-event"></i> Quản lý Sự kiện</a>
+        <a href="registrations.html" class="nav-link"><i class="bi bi-check2-square"></i> Duyệt Đăng ký</a>
+        <a href="checkin.html" class="nav-link"><i class="bi bi-qr-code-scan"></i> Điểm danh QR</a>
+        <a href="membership-requests.html" class="nav-link"><i class="bi bi-person-plus"></i> Đơn Gia nhập CLB</a>
+
+        <div class="sidebar-heading">Cơ cấu & Tổ chức</div>
+        <a href="departments.html" class="nav-link"><i class="bi bi-diagram-3"></i> Ban / Bộ phận</a>
+        <a href="positions.html" class="nav-link"><i class="bi bi-award"></i> Chức vụ</a>
+        <a href="terms.html" class="nav-link"><i class="bi bi-calendar-range"></i> Nhiệm kỳ</a>
+        <a href="assignments.html" class="nav-link"><i class="bi bi-person-gear"></i> Phân công nhân sự</a>
+
+        <div class="sidebar-heading">Nội dung & Báo cáo</div>
+        <a href="posts.html" class="nav-link"><i class="bi bi-file-earmark-post"></i> Bài viết</a>
+        <a href="notifications.html" class="nav-link"><i class="bi bi-bell"></i> Thông báo</a>
+        <a href="reports.html" class="nav-link"><i class="bi bi-graph-up"></i> Báo cáo thống kê</a>
+
+        <div class="sidebar-heading">Bảo mật & Session</div>
+        <a href="admin-sessions.html" class="nav-link"><i class="bi bi-shield-lock"></i> Single Admin Session</a>
+        <a href="trusted-devices.html" class="nav-link"><i class="bi bi-laptop"></i> Thiết bị tin cậy</a>
+        <a href="audit-log.html" class="nav-link active"><i class="bi bi-journal-text"></i> Audit Log bất biến</a>
+      </div>
+
+      <div class="p-3 border-top border-secondary-subtle">
+        <a href="../index.html" class="btn btn-sm btn-outline-light w-100 rounded-pill small">
+          <i class="bi bi-arrow-left me-1"></i> Giao diện Hội viên
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="admin-content">
+      
+      <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-2 border-bottom gap-2">
+        <div>
+          <h4 class="fw-bold text-dark m-0">Nhật Ký Hệ Thống Bất Biến (Immutable Audit Log)</h4>
+          <p class="text-muted small m-0">Lưu vết toàn bộ thao tác trọng yếu, đảm bảo tính minh bạch, an toàn và chống sửa đổi dữ liệu trái phép</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> In báo cáo
+          </button>
+          <button class="btn btn-primary btn-sm rounded-pill px-3" id="btnExportAuditLog">
+            <i class="bi bi-download me-1"></i> Xuất CSV / Excel
+          </button>
+        </div>
+      </div>
+
+      <!-- BANNER TIÊU CHUẨN AN TOÀN -->
+      <div class="alert alert-dark border-0 rounded-4 p-3 mb-4 shadow-sm text-white" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="p-2.5 bg-primary-subtle text-primary rounded-3">
+              <i class="bi bi-shield-lock-fill fs-3"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold text-white mb-1">Cơ chế Ghi chép Append-Only & Hash Integrity Verified</h6>
+              <p class="small text-secondary mb-0">Tất cả bản ghi nhật ký được ký số SHA-256 nội bộ, không cho phép cập nhật hay xóa bỏ bởi bất kỳ cấp quản trị nào.</p>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+              <i class="bi bi-check-circle-fill me-1"></i> Log Integrity: 100% Valid
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER CARD -->
+      <div class="card card-uniclub border-0 shadow-sm mb-4">
+        <div class="card-body p-3">
+          <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" id="auditSearchInput" class="form-control border-start-0" placeholder="Tìm theo Actor, IP, Hành động hoặc Chi tiết...">
+              </div>
+            </div>
+            <div class="col-md-2">
+              <select class="form-select" id="auditModuleFilter">
+                <option value="ALL">Tất cả Phân hệ</option>
+                <option value="AUTH">AUTH (Xác thực / Phiên)</option>
+                <option value="EVENT">EVENT (Quản lý Sự kiện)</option>
+                <option value="MEMBER">MEMBER (Hội viên / Nhân sự)</option>
+                <option value="CHECKIN">CHECKIN (Điểm danh QR)</option>
+                <option value="SECURITY">SECURITY (Bảo mật / Cảnh báo)</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <select class="form-select" id="auditSeverityFilter">
+                <option value="ALL">Mọi Mức độ</option>
+                <option value="INFO">Thông tin (INFO)</option>
+                <option value="SUCCESS">Thành công (SUCCESS)</option>
+                <option value="WARNING">Cảnh báo (WARNING)</option>
+                <option value="DANGER">Nguy hiểm / Chặn (DANGER)</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <input type="date" class="form-control" id="auditDateFilter" value="2026-10-05">
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+              <button class="btn btn-outline-primary w-100 rounded-pill" id="btnResetAuditFilter">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Làm mới
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUDIT LOG TABLE -->
+      <div class="card card-uniclub border-0 shadow-sm overflow-hidden mb-4">
+        <div class="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between">
+          <h6 class="fw-bold m-0 text-dark"><i class="bi bi-list-columns-reverse text-primary me-2"></i>Nhật ký Thao tác Hệ thống (<span id="auditCount">8</span> bản ghi)</h6>
+          <span class="text-muted small">Thời gian tính theo múi giờ GMT+7 (Asia/Ho_Chi_Minh)</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="auditLogTable">
+            <thead class="table-light text-muted small text-uppercase">
+              <tr>
+                <th style="width: 140px;">Mã Log & Mức độ</th>
+                <th style="width: 160px;">Thời gian</th>
+                <th style="width: 180px;">Người thực hiện (Actor)</th>
+                <th style="width: 130px;">Phân hệ</th>
+                <th>Hành động & Chi tiết thao tác</th>
+                <th style="width: 130px;">IP / Thiết bị</th>
+                <th style="width: 100px;" class="text-end">Chi tiết</th>
+              </tr>
+            </thead>
+            <tbody id="auditLogTbody">
+              <!-- Item 1 -->
+              <tr data-module="AUTH" data-severity="WARNING">
+                <td>
+                  <span class="fw-semibold font-monospace small">#LOG-202610-08</span>
+                  <span class="badge bg-warning-subtle text-warning border border-warning-subtle d-block mt-1">WARNING</span>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark small">05/10/2026 14:38:12</div>
+                  <div class="text-muted small">2 phút trước</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar-circle avatar-sm bg-primary text-white">LP</span>
+                    <div>
+                      <div class="fw-bold small text-dark">Lưu Hữu Phát</div>
+                      <div class="text-muted small">MSSV: 2374820143</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge bg-dark">AUTH</span></td>
+                <td>
+                  <div class="fw-semibold text-dark">Đăng nhập từ thiết bị lạ được phát hiện (Pending Approval)</div>
+                  <div class="text-muted small text-truncate" style="max-width: 380px;">Admin phiên mới từ Chrome trên Windows 11 yêu cầu quyền Primary Session.</div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">118.69.182.45</span>
+                  <div class="text-muted small">Chrome / Win11</div>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill view-audit-detail" 
+                          data-id="LOG-202610-08"
+                          data-actor="Lưu Hữu Phát (2374820143)"
+                          data-time="2026-10-05 14:38:12"
+                          data-ip="118.69.182.45"
+                          data-module="AUTH"
+                          data-severity="WARNING"
+                          data-action="Phát hiện đăng nhập song song trên tài khoản Admin"
+                          data-detail='{"status":"PENDING","device":"Chrome 122 on Windows 11","location":"TP. Hồ Chí Minh, VN","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)","sessionMode":"Single Active Admin"}'>
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Item 2 -->
+              <tr data-module="AUTH" data-severity="DANGER">
+                <td>
+                  <span class="fw-semibold font-monospace small">#LOG-202610-07</span>
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle d-block mt-1">DANGER</span>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark small">05/10/2026 14:15:00</div>
+                  <div class="text-muted small">25 phút trước</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar-circle avatar-sm bg-primary text-white">LP</span>
+                    <div>
+                      <div class="fw-bold small text-dark">Lưu Hữu Phát</div>
+                      <div class="text-muted small">Chủ nhiệm CLB</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge bg-dark">AUTH</span></td>
+                <td>
+                  <div class="fw-semibold text-dark">Cưỡng chế ngắt kết nối phiên làm việc (Kickout Session)</div>
+                  <div class="text-muted small text-truncate" style="max-width: 380px;">Thu hồi quyền truy cập của phiên #SES-9823 (Firefox / macOS) do hết hạn ca trực.</div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">14.161.22.90</span>
+                  <div class="text-muted small">Safari / iOS</div>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill view-audit-detail" 
+                          data-id="LOG-202610-07"
+                          data-actor="Lưu Hữu Phát (Chủ nhiệm CLB)"
+                          data-time="2026-10-05 14:15:00"
+                          data-ip="14.161.22.90"
+                          data-module="AUTH"
+                          data-severity="DANGER"
+                          data-action="Cưỡng chế hủy quyền phiên làm việc (KICKOUT)"
+                          data-detail='{"targetSessionId":"SES-9823","targetUser":"admin@uniclub.edu.vn","reason":"Admin chủ động ngắt kết nối máy công cộng","forcedBy":"Primary Active Admin"}'>
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Item 3 -->
+              <tr data-module="CHECKIN" data-severity="SUCCESS">
+                <td>
+                  <span class="fw-semibold font-monospace small">#LOG-202610-06</span>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle d-block mt-1">SUCCESS</span>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark small">05/10/2026 13:40:22</div>
+                  <div class="text-muted small">1 giờ trước</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar-circle avatar-sm bg-info text-white">NM</span>
+                    <div>
+                      <div class="fw-bold small text-dark">Nguyễn Nhật Minh</div>
+                      <div class="text-muted small">Trưởng Ban SK</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge bg-primary">CHECKIN</span></td>
+                <td>
+                  <div class="fw-semibold text-dark">Điểm danh mã QR tự động thành công cho 45 sinh viên</div>
+                  <div class="text-muted small text-truncate" style="max-width: 380px;">Sự kiện: Workshop AI in Practice 2026 tại Hội trường A.</div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">115.79.201.8</span>
+                  <div class="text-muted small">iPadOS 17.4</div>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill view-audit-detail" 
+                          data-id="LOG-202610-06"
+                          data-actor="Nguyễn Nhật Minh (Trưởng Ban SK)"
+                          data-time="2026-10-05 13:40:22"
+                          data-ip="115.79.201.8"
+                          data-module="CHECKIN"
+                          data-severity="SUCCESS"
+                          data-action="Điểm danh sinh viên qua mã QR"
+                          data-detail='{"eventId":"EVT-001","eventName":"Workshop AI in Practice 2026","checkinType":"QR_SCAN","attendanceCount":45,"locationCheck":"Hall A GPS Validated"}'>
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Item 4 -->
+              <tr data-module="MEMBER" data-severity="INFO">
+                <td>
+                  <span class="fw-semibold font-monospace small">#LOG-202610-05</span>
+                  <span class="badge bg-info-subtle text-info border border-info-subtle d-block mt-1">INFO</span>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark small">05/10/2026 11:20:05</div>
+                  <div class="text-muted small">3 giờ trước</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar-circle avatar-sm bg-primary text-white">LP</span>
+                    <div>
+                      <div class="fw-bold small text-dark">Lưu Hữu Phát</div>
+                      <div class="text-muted small">Chủ nhiệm CLB</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge bg-success">MEMBER</span></td>
+                <td>
+                  <div class="fw-semibold text-dark">Phê duyệt đơn gia nhập CLB của ứng viên mới</div>
+                  <div class="text-muted small text-truncate" style="max-width: 380px;">Duyệt hồ sơ #REQ-2026-015 (Trần Hoàng Yến, K23 CNTT) vào Ban Truyền thông.</div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">14.161.22.90</span>
+                  <div class="text-muted small">Chrome / MacOS</div>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill view-audit-detail" 
+                          data-id="LOG-202610-05"
+                          data-actor="Lưu Hữu Phát (Chủ nhiệm CLB)"
+                          data-time="2026-10-05 11:20:05"
+                          data-ip="14.161.22.90"
+                          data-module="MEMBER"
+                          data-severity="INFO"
+                          data-action="Phê duyệt đơn gia nhập thành viên mới"
+                          data-detail='{"requestId":"REQ-2026-015","candidateName":"Trần Hoàng Yến","departmentAssigned":"Ban Truyền thông","positionAssigned":"Cộng tác viên","status":"APPROVED"}'>
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Item 5 -->
+              <tr data-module="EVENT" data-severity="SUCCESS">
+                <td>
+                  <span class="fw-semibold font-monospace small">#LOG-202610-04</span>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle d-block mt-1">SUCCESS</span>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark small">05/10/2026 09:12:44</div>
+                  <div class="text-muted small">5 giờ trước</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar-circle avatar-sm bg-warning text-dark">TT</span>
+                    <div>
+                      <div class="fw-bold small text-dark">Trần Thu Trang</div>
+                      <div class="text-muted small">Phó Chủ nhiệm</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge bg-warning text-dark">EVENT</span></td>
+                <td>
+                  <div class="fw-semibold text-dark">Khởi tạo và xuất bản sự kiện mới</div>
+                  <div class="text-muted small text-truncate" style="max-width: 380px;">Tạo sự kiện: Hackathon UniCode 2026 (Quy mô 200 thí sinh, 4 phòng LAB).</div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">27.72.60.112</span>
+                  <div class="text-muted small">Edge / Win11</div>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill view-audit-detail" 
+                          data-id="LOG-202610-04"
+                          data-actor="Trần Thu Trang (Phó Chủ nhiệm)"
+                          data-time="2026-10-05 09:12:44"
+                          data-ip="27.72.60.112"
+                          data-module="EVENT"
+                          data-severity="SUCCESS"
+                          data-action="Tạo sự kiện mới"
+                          data-detail='{"eventId":"EVT-002","eventName":"Hackathon UniCode 2026","capacity":200,"location":"Khu liên hợp Công nghệ","publishStatus":"PUBLIC"}'>
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Item 6 -->
+              <tr data-module="SECURITY" data-severity="WARNING">
+                <td>
+                  <span class="fw-semibold font-monospace small">#LOG-202610-03</span>
+                  <span class="badge bg-warning-subtle text-warning border border-warning-subtle d-block mt-1">WARNING</span>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark small">04/10/2026 22:50:18</div>
+                  <div class="text-muted small">Hôm qua</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar-circle avatar-sm bg-danger text-white">SYS</span>
+                    <div>
+                      <div class="fw-bold small text-dark">System Guard</div>
+                      <div class="text-muted small">Bảo mật tự động</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge bg-secondary">SECURITY</span></td>
+                <td>
+                  <div class="fw-semibold text-dark">Phát hiện 3 lần nhập sai mật khẩu liên tiếp</div>
+                  <div class="text-muted small text-truncate" style="max-width: 380px;">Tài khoản thủ quỹ club.treasury@uniclub.edu.vn tạm thời bị khóa đăng nhập 15 phút.</div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">171.244.10.5</span>
+                  <div class="text-muted small">Bot/Script Suspicious</div>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill view-audit-detail" 
+                          data-id="LOG-202610-03"
+                          data-actor="System Guard"
+                          data-time="2026-10-04 22:50:18"
+                          data-ip="171.244.10.5"
+                          data-module="SECURITY"
+                          data-severity="WARNING"
+                          data-action="Khóa tạm thời do brute-force attempt"
+                          data-detail='{"targetAccount":"club.treasury@uniclub.edu.vn","attempts":3,"lockoutDurationMinutes":15,"actionTaken":"RATE_LIMIT_BLOCK"}'>
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Item 7 -->
+              <tr data-module="MEMBER" data-severity="SUCCESS">
+                <td>
+                  <span class="fw-semibold font-monospace small">#LOG-202610-02</span>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle d-block mt-1">SUCCESS</span>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark small">04/10/2026 16:30:00</div>
+                  <div class="text-muted small">Hôm qua</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar-circle avatar-sm bg-primary text-white">LP</span>
+                    <div>
+                      <div class="fw-bold small text-dark">Lưu Hữu Phát</div>
+                      <div class="text-muted small">Chủ nhiệm CLB</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge bg-success">MEMBER</span></td>
+                <td>
+                  <div class="fw-semibold text-dark">Bổ nhiệm Chức vụ Trưởng ban Chuyên môn</div>
+                  <div class="text-muted small text-truncate" style="max-width: 380px;">Bổ nhiệm bạn Lê Quốc Bảo (MSSV: 2374820999) nhiệm kỳ 2025 - 2026.</div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">14.161.22.90</span>
+                  <div class="text-muted small">Chrome / MacOS</div>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill view-audit-detail" 
+                          data-id="LOG-202610-02"
+                          data-actor="Lưu Hữu Phát (Chủ nhiệm CLB)"
+                          data-time="2026-10-04 16:30:00"
+                          data-ip="14.161.22.90"
+                          data-module="MEMBER"
+                          data-severity="SUCCESS"
+                          data-action="Bổ nhiệm nhân sự Ban Chuyên môn"
+                          data-detail='{"targetMember":"Lê Quốc Bảo","newPosition":"Trưởng ban","department":"Ban Chuyên môn","termId":"TERM-2025-2026"}'>
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Item 8 -->
+              <tr data-module="AUTH" data-severity="INFO">
+                <td>
+                  <span class="fw-semibold font-monospace small">#LOG-202610-01</span>
+                  <span class="badge bg-info-subtle text-info border border-info-subtle d-block mt-1">INFO</span>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark small">04/10/2026 08:00:10</div>
+                  <div class="text-muted small">Hôm qua</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar-circle avatar-sm bg-primary text-white">LP</span>
+                    <div>
+                      <div class="fw-bold small text-dark">Lưu Hữu Phát</div>
+                      <div class="text-muted small">Chủ nhiệm CLB</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge bg-dark">AUTH</span></td>
+                <td>
+                  <div class="fw-semibold text-dark">Khởi tạo phiên làm việc Primary Admin Session</div>
+                  <div class="text-muted small text-truncate" style="max-width: 380px;">Đăng nhập thành công từ thiết bị chính chủ (MacBook Pro M3 - Văn phòng Hội sinh viên).</div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">14.161.22.90</span>
+                  <div class="text-muted small">Chrome / MacOS</div>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill view-audit-detail" 
+                          data-id="LOG-202610-01"
+                          data-actor="Lưu Hữu Phát (Chủ nhiệm CLB)"
+                          data-time="2026-10-04 08:00:10"
+                          data-ip="14.161.22.90"
+                          data-module="AUTH"
+                          data-severity="INFO"
+                          data-action="Đăng nhập Primary Admin Session"
+                          data-detail='{"authMethod":"PASSWORD_2FA","sessionId":"SES-ACTIVE-001","isPrimary":true,"deviceFingerprint":"MacBook-Pro-M3-VN"}'>
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer bg-white border-top p-3 d-flex align-items-center justify-content-between">
+          <small class="text-muted">Hiển thị 1 - 8 trong tổng số 8 bản ghi</small>
+          <ul class="pagination pagination-sm m-0">
+            <li class="page-item disabled"><a class="page-link" href="#">Trước</a></li>
+            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+            <li class="page-item disabled"><a class="page-link" href="#">Sau</a></li>
+          </ul>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- MODAL XEM CHI TIẾT AUDIT LOG RECORD -->
+  <div class="modal fade" id="auditDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header bg-dark text-white border-bottom border-secondary p-3">
+          <h6 class="modal-title fw-bold" id="modalLogTitle">Chi tiết Bản ghi Nhật ký: #LOG</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4 bg-light">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <div class="bg-white p-3 rounded-3 border">
+                <small class="text-muted d-block">Người thực hiện (Actor)</small>
+                <span class="fw-bold text-dark fs-6" id="modalLogActor">--</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="bg-white p-3 rounded-3 border">
+                <small class="text-muted d-block">Thời điểm ghi nhận</small>
+                <span class="fw-bold text-dark fs-6" id="modalLogTime">--</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="bg-white p-3 rounded-3 border">
+                <small class="text-muted d-block">Phân hệ (Module)</small>
+                <span class="badge bg-dark mt-1" id="modalLogModule">--</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="bg-white p-3 rounded-3 border">
+                <small class="text-muted d-block">Mức độ nghiêm trọng</small>
+                <span class="badge bg-info mt-1" id="modalLogSeverity">--</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="bg-white p-3 rounded-3 border">
+                <small class="text-muted d-block">Địa chỉ IP ghi nhận</small>
+                <code class="d-block mt-1 text-primary fw-bold" id="modalLogIp">--</code>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-3 rounded-3 border mb-3">
+            <small class="text-muted d-block mb-1">Mô tả tóm tắt hành động</small>
+            <div class="fw-bold text-dark" id="modalLogAction">--</div>
+          </div>
+
+          <div class="bg-dark text-white p-3 rounded-3 border">
+            <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom border-secondary">
+              <small class="text-secondary font-monospace"><i class="bi bi-braces me-1"></i>Payload Chi tiết (Ký hiệu JSON Immutable)</small>
+              <span class="badge bg-success-subtle text-success small">Ký số HASH_VERIFIED</span>
+            </div>
+            <pre class="m-0 text-success small font-monospace" style="max-height: 220px; overflow-y: auto;" id="modalLogJson">
+{
+  "status": "LOADED"
+}
+            </pre>
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-top p-3 d-flex justify-content-between">
+          <span class="text-muted small"><i class="bi bi-lock me-1"></i>Dữ liệu không thể can thiệp hoặc thay đổi</span>
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+    <div id="actionToast" class="toast align-items-center text-white bg-dark border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body d-flex align-items-center gap-2">
+          <i class="bi bi-check-circle-fill text-success fs-5"></i>
+          <span id="toastMessage">Thao tác thành công!</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    // Audit Log specific JS handlers
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('auditSearchInput');
+      const moduleFilter = document.getElementById('auditModuleFilter');
+      const severityFilter = document.getElementById('auditSeverityFilter');
+      const resetBtn = document.getElementById('btnResetAuditFilter');
+      const rows = document.querySelectorAll('#auditLogTbody tr');
+      const countEl = document.getElementById('auditCount');
+
+      function filterTable() {
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const moduleVal = moduleFilter ? moduleFilter.value : 'ALL';
+        const severityVal = severityFilter ? severityFilter.value : 'ALL';
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+          const mod = row.getAttribute('data-module') || '';
+          const sev = row.getAttribute('data-severity') || '';
+          const text = row.innerText.toLowerCase();
+
+          const matchText = !query || text.includes(query);
+          const matchMod = moduleVal === 'ALL' || mod === moduleVal;
+          const matchSev = severityVal === 'ALL' || sev === severityVal;
+
+          if (matchText && matchMod && matchSev) {
+            row.style.display = '';
+            visibleCount++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        if (countEl) countEl.textContent = visibleCount;
+      }
+
+      if (searchInput) searchInput.addEventListener('input', filterTable);
+      if (moduleFilter) moduleFilter.addEventListener('change', filterTable);
+      if (severityFilter) severityFilter.addEventListener('change', filterTable);
+
+      if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+          if (searchInput) searchInput.value = '';
+          if (moduleFilter) moduleFilter.value = 'ALL';
+          if (severityFilter) severityFilter.value = 'ALL';
+          filterTable();
+        });
+      }
+
+      // View Detail Modal
+      const modalEl = document.getElementById('auditDetailModal');
+      const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+      document.querySelectorAll('.view-audit-detail').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const id = this.getAttribute('data-id');
+          const actor = this.getAttribute('data-actor');
+          const time = this.getAttribute('data-time');
+          const ip = this.getAttribute('data-ip');
+          const moduleName = this.getAttribute('data-module');
+          const severity = this.getAttribute('data-severity');
+          const action = this.getAttribute('data-action');
+          let detailJson = this.getAttribute('data-detail');
+
+          try {
+            const parsed = JSON.parse(detailJson);
+            detailJson = JSON.stringify(parsed, null, 2);
+          } catch(e) {}
+
+          document.getElementById('modalLogTitle').textContent = 'Chi tiết Bản ghi: #' + id;
+          document.getElementById('modalLogActor').textContent = actor;
+          document.getElementById('modalLogTime').textContent = time;
+          document.getElementById('modalLogIp').textContent = ip;
+          document.getElementById('modalLogModule').textContent = moduleName;
+          document.getElementById('modalLogSeverity').textContent = severity;
+          document.getElementById('modalLogAction').textContent = action;
+          document.getElementById('modalLogJson').textContent = detailJson;
+
+          if (modal) modal.show();
+        });
+      });
+
+      // Export Log
+      const exportBtn = document.getElementById('btnExportAuditLog');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+          const toastEl = document.getElementById('actionToast');
+          if (toastEl) {
+            document.getElementById('toastMessage').textContent = 'Đã kết xuất 8 bản ghi Audit Log ra định dạng Excel (CSV) thành công!';
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

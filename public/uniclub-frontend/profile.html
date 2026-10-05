@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hồ sơ Hội viên - UniClub Hub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-uniclub sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-dark" href="index.html">
+        <span class="navbar-brand-badge">UC</span>
+        <div>
+          <span class="fs-5 tracking-tight d-block leading-none">UniClub Hub</span>
+          <small class="text-muted fw-normal" style="font-size: 0.65rem;">Quản lý CLB Sinh viên</small>
+        </div>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+          <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house-door me-1"></i> Trang chủ</a></li>
+          <li class="nav-item"><a class="nav-link" href="events.html"><i class="bi bi-calendar-event me-1"></i> Sự kiện</a></li>
+          <li class="nav-item"><a class="nav-link" href="calendar.html"><i class="bi bi-calendar3 me-1"></i> Lịch tháng</a></li>
+          <li class="nav-item"><a class="nav-link" href="checkin.html"><i class="bi bi-qr-code-scan me-1"></i> Điểm danh QR</a></li>
+          <li class="nav-item"><a class="nav-link" href="my-registrations.html"><i class="bi bi-card-checklist me-1"></i> Lịch sử tham gia</a></li>
+          <li class="nav-item"><a class="nav-link" href="news.html"><i class="bi bi-newspaper me-1"></i> Tin tức</a></li>
+          <li class="nav-item"><a class="nav-link" href="membership.html"><i class="bi bi-person-plus me-1"></i> Gia nhập CLB</a></li>
+        </ul>
+
+        <div class="d-flex align-items-center gap-2">
+          <a href="admin/dashboard.html" class="btn btn-outline-primary rounded-pill px-3 py-1 fw-bold">
+            <i class="bi bi-shield-lock me-1"></i> Trang Quản trị
+          </a>
+          <div class="dropdown">
+            <button class="btn btn-primary rounded-pill px-3 py-1 dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle"></i>
+              <span class="fw-semibold">Lưu Hữu Phát</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+              <li><a class="dropdown-item active" href="profile.html"><i class="bi bi-person me-2"></i>Hồ sơ cá nhân</a></li>
+              <li><a class="dropdown-item text-danger" href="login.html"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PROFILE HEADER -->
+  <div class="bg-white border-bottom py-4 mb-4">
+    <div class="container">
+      <div class="row align-items-center g-3">
+        <div class="col-auto">
+          <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center display-6 fw-bold shadow-sm" style="width: 72px; height: 72px;">
+            P
+          </div>
+        </div>
+        <div class="col">
+          <h3 class="fw-bold text-dark m-0">Lưu Hữu Phát</h3>
+          <p class="text-muted small m-0">
+            MSSV: <span class="font-monospace fw-bold text-primary">2374820143</span> · Trưởng ban Chuyên môn · Khóa K23
+          </p>
+        </div>
+        <div class="col-auto">
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold">
+            <i class="bi bi-patch-check-fill me-1"></i> Hội viên Nòng Cốt
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE BODY -->
+  <div class="container mb-5">
+    <div class="row g-4">
+      
+      <!-- Left Column: Metrics & Badges -->
+      <div class="col-lg-4">
+        <div class="card card-uniclub border-0 shadow-sm p-4 mb-4 text-center">
+          <h6 class="fw-bold text-muted small text-uppercase mb-3">Điểm Đóng Góp Phong Trào</h6>
+          <div class="display-4 fw-bold text-primary mb-1">95</div>
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill mb-3">
+            Xếp hạng: Top 2 Toàn CLB
+          </span>
+          <div class="progress mb-2" style="height: 10px;">
+            <div class="progress-bar bg-primary" role="progressbar" style="width: 95%;"></div>
+          </div>
+          <small class="text-muted">Hoàn thành 19/20 chỉ tiêu hoạt động năm học</small>
+        </div>
+
+        <div class="card card-uniclub border-0 shadow-sm p-4">
+          <h6 class="fw-bold mb-3"><i class="bi bi-shield-lock text-secondary me-2"></i>Quyền hạn & Chức vụ</h6>
+          <ul class="list-unstyled small text-secondary space-y-2 mb-0">
+            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Ban:</strong> Ban Chuyên môn</li>
+            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Chức vụ:</strong> Trưởng ban Chuyên môn</li>
+            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Nhiệm kỳ:</strong> Nhiệm kỳ 2026-2027</li>
+            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Quyền Admin:</strong> Quản lý sự kiện, điểm danh & CI/CD</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right Column: Personal Info Form -->
+      <div class="col-lg-8">
+        <div class="card card-uniclub border-0 shadow-sm p-4 p-md-5">
+          <h5 class="fw-bold mb-4"><i class="bi bi-person-lines-fill text-primary me-2"></i>Cập nhật Thông tin Cá nhân</h5>
+          
+          <form class="needs-validation" data-success-msg="Cập nhật thông tin hồ sơ thành công!" novalidate>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Họ và tên</label>
+                <input type="text" class="form-control" value="Lưu Hữu Phát" readonly>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Mã số sinh viên (MSSV)</label>
+                <input type="text" class="form-control font-monospace" value="2374820143" readonly>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Email liên hệ *</label>
+                <input type="email" class="form-control" value="phat.lh@uniclub.vn" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Số điện thoại *</label>
+                <input type="tel" class="form-control" value="0912345602" required pattern="0[0-9]{9}">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Khoa / Viện</label>
+                <input type="text" class="form-control" value="Viện Công nghệ Thông tin" readonly>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Lớp sinh hoạt</label>
+                <input type="text" class="form-control" value="DHIT20A" readonly>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+              <i class="bi bi-save me-1"></i> Lưu thay đổi
+            </button>
+          </form>
+
+          <hr class="my-4">
+
+          <h6 class="fw-bold mb-3"><i class="bi bi-award text-warning me-2"></i>Sự kiện đã tham dự & Điểm danh</h6>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle small mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Sự kiện</th>
+                  <th>Ngày</th>
+                  <th>Điểm danh</th>
+                  <th>Điểm</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Workshop Git & GitHub Actions CI/CD Thực Chiến</td>
+                  <td>15/10/2026</td>
+                  <td><span class="badge badge-status-attended">Đã quét QR</span></td>
+                  <td class="fw-bold text-success">+5</td>
+                </tr>
+                <tr>
+                  <td>Sinh hoạt CLB Định kỳ Tháng 10</td>
+                  <td>18/10/2026</td>
+                  <td><span class="badge badge-status-attended">Đã quét QR</span></td>
+                  <td class="fw-bold text-success">+5</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="uniclub-footer">
+    <div class="container text-center small text-muted">
+      Bản quyền © 2026 UniClub Hub · Hệ thống Quản lý Câu lạc bộ Sinh viên.
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/validation.js"></script>
+</body>
+</html>

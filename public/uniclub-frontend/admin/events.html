@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Sự kiện - UniClub Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-light">
+
+  <div class="admin-wrapper">
+    
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar shadow-sm">
+      <div class="p-3 border-bottom border-secondary-subtle d-flex align-items-center justify-content-between">
+        <a href="dashboard.html" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+          <span class="navbar-brand-badge" style="width: 34px; height: 34px; font-size: 0.9rem;">UC</span>
+          <div>
+            <span class="fw-bold fs-6 d-block leading-none">UniClub Admin</span>
+            <small class="text-secondary" style="font-size: 0.65rem;">Quản trị CLB Toàn diện</small>
+          </div>
+        </a>
+        <button class="btn btn-sm btn-dark d-lg-none" id="adminSidebarToggle"><i class="bi bi-x fs-5"></i></button>
+      </div>
+
+      <div class="overflow-y-auto flex-grow-1 py-2">
+        <div class="sidebar-heading">Tổng quan</div>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+        <div class="sidebar-heading">Hoạt động & Hội viên</div>
+        <a href="members.html" class="nav-link"><i class="bi bi-people"></i> Quản lý Hội viên</a>
+        <a href="events.html" class="nav-link active"><i class="bi bi-calendar-event"></i> Quản lý Sự kiện</a>
+        <a href="registrations.html" class="nav-link"><i class="bi bi-check2-square"></i> Duyệt Đăng ký</a>
+        <a href="checkin.html" class="nav-link"><i class="bi bi-qr-code-scan"></i> Điểm danh QR</a>
+        <a href="membership-requests.html" class="nav-link"><i class="bi bi-person-plus"></i> Đơn Gia nhập CLB</a>
+
+        <div class="sidebar-heading">Cơ cấu & Tổ chức</div>
+        <a href="departments.html" class="nav-link"><i class="bi bi-diagram-3"></i> Ban / Bộ phận</a>
+        <a href="positions.html" class="nav-link"><i class="bi bi-award"></i> Chức vụ</a>
+        <a href="terms.html" class="nav-link"><i class="bi bi-calendar-range"></i> Nhiệm kỳ</a>
+        <a href="assignments.html" class="nav-link"><i class="bi bi-person-gear"></i> Phân công nhân sự</a>
+
+        <div class="sidebar-heading">Nội dung & Báo cáo</div>
+        <a href="posts.html" class="nav-link"><i class="bi bi-file-earmark-post"></i> Bài viết</a>
+        <a href="notifications.html" class="nav-link"><i class="bi bi-bell"></i> Thông báo</a>
+        <a href="reports.html" class="nav-link"><i class="bi bi-graph-up"></i> Báo cáo thống kê</a>
+
+        <div class="sidebar-heading">Bảo mật & Session</div>
+        <a href="admin-sessions.html" class="nav-link"><i class="bi bi-shield-lock"></i> Single Admin Session</a>
+        <a href="trusted-devices.html" class="nav-link"><i class="bi bi-laptop"></i> Thiết bị tin cậy</a>
+        <a href="audit-log.html" class="nav-link"><i class="bi bi-journal-text"></i> Audit Log bất biến</a>
+      </div>
+
+      <div class="p-3 border-top border-secondary-subtle">
+        <a href="../index.html" class="btn btn-sm btn-outline-light w-100 rounded-pill small">
+          <i class="bi bi-arrow-left me-1"></i> Giao diện Hội viên
+        </a>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="admin-content">
+      
+      <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-2 border-bottom gap-2">
+        <div>
+          <h4 class="fw-bold text-dark m-0">Quản lý Hoạt động & Sự kiện (CRUD)</h4>
+          <p class="text-muted small m-0">Danh sách các chương trình, hội thảo, cuộc thi và tình trạng số lượng chỗ</p>
+        </div>
+        <a href="event-form.html" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold">
+          <i class="bi bi-plus-circle-fill me-1"></i> Tạo sự kiện mới
+        </a>
+      </div>
+
+      <!-- FILTER & SEARCH -->
+      <div class="card card-uniclub border-0 shadow-sm p-3 mb-4">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-7">
+            <div class="input-group">
+              <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
+              <input type="text" id="adminTableSearch" class="form-control border-start-0" placeholder="Tìm theo tên sự kiện, loại hình, địa điểm...">
+            </div>
+          </div>
+          <div class="col-md-5">
+            <select class="form-select">
+              <option value="ALL">Tất cả loại hình (Học thuật, Tình nguyện, Cuộc thi...)</option>
+              <option value="Học thuật">Học thuật</option>
+              <option value="Tình nguyện">Tình nguyện</option>
+              <option value="Cuộc thi">Cuộc thi</option>
+              <option value="Sinh hoạt">Sinh hoạt</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="card card-uniclub border-0 shadow-sm overflow-hidden">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 admin-data-table">
+            <thead class="table-light small text-uppercase text-secondary">
+              <tr>
+                <th class="ps-4">Tên sự kiện</th>
+                <th>Loại hình</th>
+                <th>Thời gian</th>
+                <th>Địa điểm</th>
+                <th>Số chỗ (Đã ĐK / Tối đa)</th>
+                <th>Trạng thái</th>
+                <th class="text-end pe-4">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              
+              <tr>
+                <td class="ps-4">
+                  <strong class="d-block text-dark">Workshop Git & GitHub Actions CI/CD Thực Chiến</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">Phụ trách: Ban Chuyên môn</span>
+                </td>
+                <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">Học thuật</span></td>
+                <td>15/10/2026<br><span class="text-muted" style="font-size: 0.7rem;">08:00 - 11:30</span></td>
+                <td>Hội trường A2-301</td>
+                <td>
+                  <span class="fw-bold text-dark">68 / 100</span>
+                  <div class="progress mt-1" style="height: 5px; width: 80px;">
+                    <div class="progress-bar bg-primary" style="width: 68%;"></div>
+                  </div>
+                </td>
+                <td><span class="badge badge-status-active">Mở đăng ký</span></td>
+                <td class="text-end pe-4">
+                  <a href="event-form.html" class="btn btn-sm btn-outline-secondary rounded-pill me-1"><i class="bi bi-pencil"></i></a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="if(confirm('Bạn có chắc muốn ẩn sự kiện này? Dữ liệu lịch sử đăng ký vẫn được bảo lưu (xóa mềm).')) showToast('Đã ẩn sự kiện thành công (is_active = false).', 'warning');"><i class="bi bi-eye-slash"></i></button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4">
+                  <strong class="d-block text-dark">Chiến dịch Tình nguyện Mùa Thu 2026</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">Phụ trách: Ban Sự kiện</span>
+                </td>
+                <td><span class="badge bg-success-subtle text-success border border-success-subtle">Tình nguyện</span></td>
+                <td>22/10/2026<br><span class="text-muted" style="font-size: 0.7rem;">07:00 - 17:00</span></td>
+                <td>Ba Vì, Hà Nội</td>
+                <td>
+                  <span class="fw-bold text-dark">38 / 50</span>
+                  <div class="progress mt-1" style="height: 5px; width: 80px;">
+                    <div class="progress-bar bg-success" style="width: 76%;"></div>
+                  </div>
+                </td>
+                <td><span class="badge badge-status-active">Mở đăng ký</span></td>
+                <td class="text-end pe-4">
+                  <a href="event-form.html" class="btn btn-sm btn-outline-secondary rounded-pill me-1"><i class="bi bi-pencil"></i></a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="showToast('Đã ẩn sự kiện.', 'warning');"><i class="bi bi-eye-slash"></i></button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4">
+                  <strong class="d-block text-dark">Hackathon UniClub DevCup 2026</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">Phụ trách: Ban Chuyên môn</span>
+                </td>
+                <td><span class="badge bg-warning-subtle text-warning border border-warning-subtle">Cuộc thi</span></td>
+                <td>05/11/2026<br><span class="text-muted" style="font-size: 0.7rem;">08:00 - 20:00</span></td>
+                <td>Lab 402 Công nghệ Cao</td>
+                <td>
+                  <span class="fw-bold text-danger">60 / 60</span>
+                  <div class="progress mt-1" style="height: 5px; width: 80px;">
+                    <div class="progress-bar bg-danger" style="width: 100%;"></div>
+                  </div>
+                </td>
+                <td><span class="badge badge-status-rejected">Đã đủ số lượng</span></td>
+                <td class="text-end pe-4">
+                  <a href="event-form.html" class="btn btn-sm btn-outline-secondary rounded-pill me-1"><i class="bi bi-pencil"></i></a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="showToast('Đã ẩn sự kiện.', 'warning');"><i class="bi bi-eye-slash"></i></button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4">
+                  <strong class="d-block text-dark">Sinh hoạt CLB Định kỳ Tháng 10</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">Phụ trách: Ban Chủ nhiệm</span>
+                </td>
+                <td><span class="badge bg-info-subtle text-info border border-info-subtle">Sinh hoạt</span></td>
+                <td>18/10/2026<br><span class="text-muted" style="font-size: 0.7rem;">18:30 - 21:00</span></td>
+                <td>Hội trường B1</td>
+                <td>
+                  <span class="fw-bold text-dark">75 / 120</span>
+                  <div class="progress mt-1" style="height: 5px; width: 80px;">
+                    <div class="progress-bar bg-info" style="width: 62.5%;"></div>
+                  </div>
+                </td>
+                <td><span class="badge badge-status-active">Mở đăng ký</span></td>
+                <td class="text-end pe-4">
+                  <a href="event-form.html" class="btn btn-sm btn-outline-secondary rounded-pill me-1"><i class="bi bi-pencil"></i></a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="showToast('Đã ẩn sự kiện.', 'warning');"><i class="bi bi-eye-slash"></i></button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4">
+                  <strong class="d-block text-dark">Kỹ Năng Phỏng Vấn Doanh Nghiệp Tech</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">Phụ trách: Ban Đối ngoại</span>
+                </td>
+                <td><span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Kỹ năng</span></td>
+                <td>12/11/2026<br><span class="text-muted" style="font-size: 0.7rem;">09:00 - 11:00</span></td>
+                <td>Phòng Hội thảo 2</td>
+                <td>
+                  <span class="fw-bold text-dark">55 / 80</span>
+                  <div class="progress mt-1" style="height: 5px; width: 80px;">
+                    <div class="progress-bar bg-secondary" style="width: 68%;"></div>
+                  </div>
+                </td>
+                <td><span class="badge badge-status-active">Mở đăng ký</span></td>
+                <td class="text-end pe-4">
+                  <a href="event-form.html" class="btn btn-sm btn-outline-secondary rounded-pill me-1"><i class="bi bi-pencil"></i></a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="showToast('Đã ẩn sự kiện.', 'warning');"><i class="bi bi-eye-slash"></i></button>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+</body>
+</html>

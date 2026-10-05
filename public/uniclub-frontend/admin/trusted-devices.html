@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thiết bị Tin cậy - UniClub Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-light">
+
+  <div class="admin-wrapper">
+    
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar shadow-sm">
+      <div class="p-3 border-bottom border-secondary-subtle d-flex align-items-center justify-content-between">
+        <a href="dashboard.html" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+          <span class="navbar-brand-badge" style="width: 34px; height: 34px; font-size: 0.9rem;">UC</span>
+          <div>
+            <span class="fw-bold fs-6 d-block leading-none">UniClub Admin</span>
+            <small class="text-secondary" style="font-size: 0.65rem;">Quản trị CLB Toàn diện</small>
+          </div>
+        </a>
+        <button class="btn btn-sm btn-dark d-lg-none" id="adminSidebarToggle"><i class="bi bi-x fs-5"></i></button>
+      </div>
+
+      <div class="overflow-y-auto flex-grow-1 py-2">
+        <div class="sidebar-heading">Tổng quan</div>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+        <div class="sidebar-heading">Hoạt động & Hội viên</div>
+        <a href="members.html" class="nav-link"><i class="bi bi-people"></i> Quản lý Hội viên</a>
+        <a href="events.html" class="nav-link"><i class="bi bi-calendar-event"></i> Quản lý Sự kiện</a>
+        <a href="registrations.html" class="nav-link"><i class="bi bi-check2-square"></i> Duyệt Đăng ký</a>
+        <a href="checkin.html" class="nav-link"><i class="bi bi-qr-code-scan"></i> Điểm danh QR</a>
+        <a href="membership-requests.html" class="nav-link"><i class="bi bi-person-plus"></i> Đơn Gia nhập CLB</a>
+
+        <div class="sidebar-heading">Cơ cấu & Tổ chức</div>
+        <a href="departments.html" class="nav-link"><i class="bi bi-diagram-3"></i> Ban / Bộ phận</a>
+        <a href="positions.html" class="nav-link"><i class="bi bi-award"></i> Chức vụ</a>
+        <a href="terms.html" class="nav-link"><i class="bi bi-calendar-range"></i> Nhiệm kỳ</a>
+        <a href="assignments.html" class="nav-link"><i class="bi bi-person-gear"></i> Phân công nhân sự</a>
+
+        <div class="sidebar-heading">Nội dung & Báo cáo</div>
+        <a href="posts.html" class="nav-link"><i class="bi bi-file-earmark-post"></i> Bài viết</a>
+        <a href="notifications.html" class="nav-link"><i class="bi bi-bell"></i> Thông báo</a>
+        <a href="reports.html" class="nav-link"><i class="bi bi-graph-up"></i> Báo cáo thống kê</a>
+
+        <div class="sidebar-heading">Bảo mật & Session</div>
+        <a href="admin-sessions.html" class="nav-link"><i class="bi bi-shield-lock"></i> Single Admin Session</a>
+        <a href="trusted-devices.html" class="nav-link active"><i class="bi bi-laptop"></i> Thiết bị tin cậy</a>
+        <a href="audit-log.html" class="nav-link"><i class="bi bi-journal-text"></i> Audit Log bất biến</a>
+      </div>
+
+      <div class="p-3 border-top border-secondary-subtle">
+        <a href="../index.html" class="btn btn-sm btn-outline-light w-100 rounded-pill small">
+          <i class="bi bi-arrow-left me-1"></i> Giao diện Hội viên
+        </a>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="admin-content">
+      
+      <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-2 border-bottom gap-2">
+        <div>
+          <h4 class="fw-bold text-dark m-0">Quản lý Thiết bị Tin cậy (Trusted Devices)</h4>
+          <p class="text-muted small m-0">Quản lý các thiết bị đã được Admin phê duyệt và cấp Device Token bảo mật (30 ngày)</p>
+        </div>
+      </div>
+
+      <!-- Info Alert -->
+      <div class="alert alert-info border-info-subtle rounded-4 p-3 small mb-4">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-info-circle-fill text-info fs-5"></i>
+          <div>
+            <strong>Cơ chế Nhận diện Thiết bị Tin cậy:</strong>
+            Khi một máy tính/thiết bị được Admin chính chấp thuận bổ nhiệm, hệ thống tự động sinh ra một <code>device_token</code> mã hóa (thời hạn 30 ngày). Các lần đăng nhập tiếp theo trên máy đó sẽ <strong>tự động được cấp quyền</strong> mà không phải chờ duyệt lại, trừ khi Admin chính bấm nút <em>"Thu hồi thiết bị"</em>.
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="card card-uniclub border-0 shadow-sm overflow-hidden">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase text-secondary">
+              <tr>
+                <th class="ps-4">Tên thiết bị & Nhận diện</th>
+                <th>Địa chỉ IP đăng ký</th>
+                <th>Mã băm Token (SHA-256)</th>
+                <th>Ngày cấp</th>
+                <th>Dùng lần cuối</th>
+                <th>Trạng thái</th>
+                <th class="text-end pe-4">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              
+              <tr>
+                <td class="ps-4">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-laptop fs-4 text-primary"></i>
+                    <div>
+                      <strong class="d-block text-dark">Laptop Admin Văn phòng CLB</strong>
+                      <span class="text-muted" style="font-size: 0.75rem;">Phòng A2-302</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="font-monospace fw-bold text-dark">113.190.234.12</td>
+                <td class="font-monospace text-muted" style="font-size: 0.75rem;">e3b0c44298fc1c...</td>
+                <td>01/09/2026</td>
+                <td>05/10/2026</td>
+                <td><span class="badge badge-status-approved badge-device-status">APPROVED (30 ngày)</span></td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-danger rounded-pill px-3 btn-revoke-device">
+                    <i class="bi bi-trash me-1"></i> Thu hồi
+                  </button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-display fs-4 text-success"></i>
+                    <div>
+                      <strong class="d-block text-dark">PC Phòng Lab Thực Hành</strong>
+                      <span class="text-muted" style="font-size: 0.75rem;">Phòng Lab 402</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="font-monospace fw-bold text-dark">10.0.12.45</td>
+                <td class="font-monospace text-muted" style="font-size: 0.75rem;">5994471abb0111...</td>
+                <td>15/09/2026</td>
+                <td>04/10/2026</td>
+                <td><span class="badge badge-status-approved badge-device-status">APPROVED (30 ngày)</span></td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-danger rounded-pill px-3 btn-revoke-device">
+                    <i class="bi bi-trash me-1"></i> Thu hồi
+                  </button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-phone fs-4 text-muted"></i>
+                    <div>
+                      <strong class="d-block text-dark">Máy tính cá nhân Phó Chủ nhiệm</strong>
+                      <span class="text-muted" style="font-size: 0.75rem;">Thiết bị cá nhân</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="font-monospace text-muted">14.238.10.45</td>
+                <td class="font-monospace text-muted" style="font-size: 0.75rem;">6b86b273ff34fc...</td>
+                <td>20/08/2026</td>
+                <td>28/09/2026</td>
+                <td><span class="badge badge-status-rejected badge-device-status">REVOKED (Đã thu hồi)</span></td>
+                <td class="text-end pe-4">
+                  <span class="text-muted small">Đã hủy token</span>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+</body>
+</html>

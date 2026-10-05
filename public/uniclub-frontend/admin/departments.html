@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Ban / Bộ phận - UniClub Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-light">
+
+  <div class="admin-wrapper">
+    
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar shadow-sm">
+      <div class="p-3 border-bottom border-secondary-subtle d-flex align-items-center justify-content-between">
+        <a href="dashboard.html" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+          <span class="navbar-brand-badge" style="width: 34px; height: 34px; font-size: 0.9rem;">UC</span>
+          <div>
+            <span class="fw-bold fs-6 d-block leading-none">UniClub Admin</span>
+            <small class="text-secondary" style="font-size: 0.65rem;">Quản trị CLB Toàn diện</small>
+          </div>
+        </a>
+        <button class="btn btn-sm btn-dark d-lg-none" id="adminSidebarToggle"><i class="bi bi-x fs-5"></i></button>
+      </div>
+
+      <div class="overflow-y-auto flex-grow-1 py-2">
+        <div class="sidebar-heading">Tổng quan</div>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+        <div class="sidebar-heading">Hoạt động & Hội viên</div>
+        <a href="members.html" class="nav-link"><i class="bi bi-people"></i> Quản lý Hội viên</a>
+        <a href="events.html" class="nav-link"><i class="bi bi-calendar-event"></i> Quản lý Sự kiện</a>
+        <a href="registrations.html" class="nav-link"><i class="bi bi-check2-square"></i> Duyệt Đăng ký</a>
+        <a href="checkin.html" class="nav-link"><i class="bi bi-qr-code-scan"></i> Điểm danh QR</a>
+        <a href="membership-requests.html" class="nav-link"><i class="bi bi-person-plus"></i> Đơn Gia nhập CLB</a>
+
+        <div class="sidebar-heading">Cơ cấu & Tổ chức</div>
+        <a href="departments.html" class="nav-link active"><i class="bi bi-diagram-3"></i> Ban / Bộ phận</a>
+        <a href="positions.html" class="nav-link"><i class="bi bi-award"></i> Chức vụ</a>
+        <a href="terms.html" class="nav-link"><i class="bi bi-calendar-range"></i> Nhiệm kỳ</a>
+        <a href="assignments.html" class="nav-link"><i class="bi bi-person-gear"></i> Phân công nhân sự</a>
+
+        <div class="sidebar-heading">Nội dung & Báo cáo</div>
+        <a href="posts.html" class="nav-link"><i class="bi bi-file-earmark-post"></i> Bài viết</a>
+        <a href="notifications.html" class="nav-link"><i class="bi bi-bell"></i> Thông báo</a>
+        <a href="reports.html" class="nav-link"><i class="bi bi-graph-up"></i> Báo cáo thống kê</a>
+
+        <div class="sidebar-heading">Bảo mật & Session</div>
+        <a href="admin-sessions.html" class="nav-link"><i class="bi bi-shield-lock"></i> Single Admin Session</a>
+        <a href="trusted-devices.html" class="nav-link"><i class="bi bi-laptop"></i> Thiết bị tin cậy</a>
+        <a href="audit-log.html" class="nav-link"><i class="bi bi-journal-text"></i> Audit Log bất biến</a>
+      </div>
+
+      <div class="p-3 border-top border-secondary-subtle">
+        <a href="../index.html" class="btn btn-sm btn-outline-light w-100 rounded-pill small">
+          <i class="bi bi-arrow-left me-1"></i> Giao diện Hội viên
+        </a>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="admin-content">
+      
+      <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-2 border-bottom gap-2">
+        <div>
+          <h4 class="fw-bold text-dark m-0">Quản lý Cơ cấu Ban / Bộ phận</h4>
+          <p class="text-muted small m-0">Phân định vai trò và tổ chức nhân sự nòng cốt theo đề án câu lạc bộ</p>
+        </div>
+        <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#addDeptModal">
+          <i class="bi bi-plus-circle-fill me-1"></i> Thêm Ban mới
+        </button>
+      </div>
+
+      <!-- TABLE -->
+      <div class="card card-uniclub border-0 shadow-sm overflow-hidden">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase text-secondary">
+              <tr>
+                <th class="ps-4">Tên Ban / Bộ phận</th>
+                <th>Trưởng ban phụ trách</th>
+                <th>Số lượng nhân sự</th>
+                <th>Chức năng & Nhiệm vụ chính</th>
+                <th>Trạng thái</th>
+                <th class="text-end pe-4">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              
+              <tr>
+                <td class="ps-4">
+                  <strong class="d-block text-dark">Ban Chủ nhiệm</strong>
+                  <span class="text-muted font-monospace" style="font-size: 0.75rem;">DEPT-01</span>
+                </td>
+                <td><strong>Nguyễn Phương Linh</strong></td>
+                <td><span class="badge bg-light text-dark border">02 hội viên</span></td>
+                <td>Điều hành chung, hoạch định chiến lược, duyệt ngân sách và đối ngoại trường học.</td>
+                <td><span class="badge badge-status-active">Hoạt động</span></td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill me-1"><i class="bi bi-pencil"></i> Sửa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4">
+                  <strong class="d-block text-dark">Ban Chuyên môn</strong>
+                  <span class="text-muted font-monospace" style="font-size: 0.75rem;">DEPT-02</span>
+                </td>
+                <td><strong>Lưu Hữu Phát</strong></td>
+                <td><span class="badge bg-light text-dark border">03 hội viên</span></td>
+                <td>Tổ chức workshop kỹ thuật, huấn luyện Git/CI-CD, nghiên cứu khoa học và ôn luyện thi.</td>
+                <td><span class="badge badge-status-active">Hoạt động</span></td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill me-1"><i class="bi bi-pencil"></i> Sửa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4">
+                  <strong class="d-block text-dark">Ban Sự kiện</strong>
+                  <span class="text-muted font-monospace" style="font-size: 0.75rem;">DEPT-03</span>
+                </td>
+                <td><strong>Nguyễn Ngọc Hoa</strong></td>
+                <td><span class="badge bg-light text-dark border">02 hội viên</span></td>
+                <td>Xây dựng kịch bản, điều phối hội trường, quản lý thiết bị âm thanh và check-in QR.</td>
+                <td><span class="badge badge-status-active">Hoạt động</span></td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill me-1"><i class="bi bi-pencil"></i> Sửa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4">
+                  <strong class="d-block text-dark">Ban Truyền thông</strong>
+                  <span class="text-muted font-monospace" style="font-size: 0.75rem;">DEPT-04</span>
+                </td>
+                <td><strong>Đỗ Thị Thơ</strong></td>
+                <td><span class="badge bg-light text-dark border">02 hội viên</span></td>
+                <td>Thiết kế ấn phẩm truyền thông, quản trị Fanpage, chụp ảnh phóng sự và biên tập tin tức.</td>
+                <td><span class="badge badge-status-active">Hoạt động</span></td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill me-1"><i class="bi bi-pencil"></i> Sửa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4">
+                  <strong class="d-block text-dark">Ban Đối ngoại & Hậu cần</strong>
+                  <span class="text-muted font-monospace" style="font-size: 0.75rem;">DEPT-05</span>
+                </td>
+                <td><strong>Hoàng Minh Cường</strong></td>
+                <td><span class="badge bg-light text-dark border">02 hội viên</span></td>
+                <td>Kết nối doanh nghiệp công nghệ tài trợ, chuẩn bị teabreak quà tặng và cơ sở vật chất.</td>
+                <td><span class="badge badge-status-active">Hoạt động</span></td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill me-1"><i class="bi bi-pencil"></i> Sửa</button>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ADD DEPT MODAL -->
+  <div class="modal fade" id="addDeptModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Thêm Ban / Bộ phận Mới</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form class="needs-validation" data-success-msg="Thêm Ban chuyên môn mới thành công!" novalidate>
+          <div class="modal-body py-3">
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Tên Ban / Bộ phận *</label>
+              <input type="text" class="form-control" placeholder="VD: Ban Dự án Sinh viên" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Mô tả chức năng & nhiệm vụ *</label>
+              <textarea class="form-control" rows="3" placeholder="Mô tả phạm vi hoạt động..." required></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0">
+            <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Lưu Ban mới</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script src="../assets/js/validation.js"></script>
+</body>
+</html>

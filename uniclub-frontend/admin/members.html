@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Hội viên - UniClub Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-light">
+
+  <div class="admin-wrapper">
+    
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar shadow-sm">
+      <div class="p-3 border-bottom border-secondary-subtle d-flex align-items-center justify-content-between">
+        <a href="dashboard.html" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+          <span class="navbar-brand-badge" style="width: 34px; height: 34px; font-size: 0.9rem;">UC</span>
+          <div>
+            <span class="fw-bold fs-6 d-block leading-none">UniClub Admin</span>
+            <small class="text-secondary" style="font-size: 0.65rem;">Quản trị CLB Toàn diện</small>
+          </div>
+        </a>
+        <button class="btn btn-sm btn-dark d-lg-none" id="adminSidebarToggle"><i class="bi bi-x fs-5"></i></button>
+      </div>
+
+      <div class="overflow-y-auto flex-grow-1 py-2">
+        <div class="sidebar-heading">Tổng quan</div>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+        <div class="sidebar-heading">Hoạt động & Hội viên</div>
+        <a href="members.html" class="nav-link active"><i class="bi bi-people"></i> Quản lý Hội viên</a>
+        <a href="events.html" class="nav-link"><i class="bi bi-calendar-event"></i> Quản lý Sự kiện</a>
+        <a href="registrations.html" class="nav-link"><i class="bi bi-check2-square"></i> Duyệt Đăng ký</a>
+        <a href="checkin.html" class="nav-link"><i class="bi bi-qr-code-scan"></i> Điểm danh QR</a>
+        <a href="membership-requests.html" class="nav-link"><i class="bi bi-person-plus"></i> Đơn Gia nhập CLB</a>
+
+        <div class="sidebar-heading">Cơ cấu & Tổ chức</div>
+        <a href="departments.html" class="nav-link"><i class="bi bi-diagram-3"></i> Ban / Bộ phận</a>
+        <a href="positions.html" class="nav-link"><i class="bi bi-award"></i> Chức vụ</a>
+        <a href="terms.html" class="nav-link"><i class="bi bi-calendar-range"></i> Nhiệm kỳ</a>
+        <a href="assignments.html" class="nav-link"><i class="bi bi-person-gear"></i> Phân công nhân sự</a>
+
+        <div class="sidebar-heading">Nội dung & Báo cáo</div>
+        <a href="posts.html" class="nav-link"><i class="bi bi-file-earmark-post"></i> Bài viết</a>
+        <a href="notifications.html" class="nav-link"><i class="bi bi-bell"></i> Thông báo</a>
+        <a href="reports.html" class="nav-link"><i class="bi bi-graph-up"></i> Báo cáo thống kê</a>
+
+        <div class="sidebar-heading">Bảo mật & Session</div>
+        <a href="admin-sessions.html" class="nav-link"><i class="bi bi-shield-lock"></i> Single Admin Session</a>
+        <a href="trusted-devices.html" class="nav-link"><i class="bi bi-laptop"></i> Thiết bị tin cậy</a>
+        <a href="audit-log.html" class="nav-link"><i class="bi bi-journal-text"></i> Audit Log bất biến</a>
+      </div>
+
+      <div class="p-3 border-top border-secondary-subtle">
+        <a href="../index.html" class="btn btn-sm btn-outline-light w-100 rounded-pill small">
+          <i class="bi bi-arrow-left me-1"></i> Giao diện Hội viên
+        </a>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="admin-content">
+      
+      <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-2 border-bottom gap-2">
+        <div>
+          <h4 class="fw-bold text-dark m-0">Quản lý Danh sách Hội viên</h4>
+          <p class="text-muted small m-0">Hồ sơ 10 hội viên trực thuộc 5 ban chuyên môn của câu lạc bộ</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="showToast('Đang tải danh sách hội viên ra file Excel...', 'info')">
+            <i class="bi bi-download me-1"></i> Xuất Excel
+          </button>
+          <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+            <i class="bi bi-person-plus-fill me-1"></i> Thêm hội viên
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTER & SEARCH -->
+      <div class="card card-uniclub border-0 shadow-sm p-3 mb-4">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-7">
+            <div class="input-group">
+              <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
+              <input type="text" id="adminTableSearch" class="form-control border-start-0" placeholder="Tìm theo tên hội viên, MSSV, ban hoặc email...">
+            </div>
+          </div>
+          <div class="col-md-5">
+            <select class="form-select" id="deptFilterSelect">
+              <option value="ALL">Tất cả Ban / Bộ phận (5 Ban)</option>
+              <option value="Ban Chủ nhiệm">Ban Chủ nhiệm</option>
+              <option value="Ban Chuyên môn">Ban Chuyên môn</option>
+              <option value="Ban Sự kiện">Ban Sự kiện</option>
+              <option value="Ban Truyền thông">Ban Truyền thông</option>
+              <option value="Ban Đối ngoại">Ban Đối ngoại</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="card card-uniclub border-0 shadow-sm overflow-hidden">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 admin-data-table">
+            <thead class="table-light small text-uppercase text-secondary">
+              <tr>
+                <th class="ps-4">MSSV</th>
+                <th>Họ và tên</th>
+                <th>Ban chuyên môn</th>
+                <th>Chức vụ</th>
+                <th>Trạng thái</th>
+                <th>Điểm cống hiến</th>
+                <th class="text-end pe-4">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              
+              <tr>
+                <td class="ps-4 font-monospace fw-bold text-primary">2374820116</td>
+                <td>
+                  <strong class="d-block text-dark">Nguyễn Phương Linh</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">linh.np@uniclub.vn</span>
+                </td>
+                <td>Ban Chủ nhiệm</td>
+                <td><span class="badge bg-primary">Chủ nhiệm CLB</span></td>
+                <td><span class="badge badge-status-active badge-member-status">Hoạt động</span></td>
+                <td><span class="fw-bold text-success">98 điểm</span></td>
+                <td class="text-end pe-4">
+                  <a href="member-detail.html" class="btn btn-sm btn-outline-primary rounded-pill me-1">Chi tiết</a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill btn-toggle-member-status"><i class="bi bi-lock"></i> Khóa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4 font-monospace fw-bold text-primary">2374820143</td>
+                <td>
+                  <strong class="d-block text-dark">Lưu Hữu Phát</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">phat.lh@uniclub.vn</span>
+                </td>
+                <td>Ban Chuyên môn</td>
+                <td><span class="badge bg-info text-dark">Trưởng ban Chuyên môn</span></td>
+                <td><span class="badge badge-status-active badge-member-status">Hoạt động</span></td>
+                <td><span class="fw-bold text-success">95 điểm</span></td>
+                <td class="text-end pe-4">
+                  <a href="member-detail.html" class="btn btn-sm btn-outline-primary rounded-pill me-1">Chi tiết</a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill btn-toggle-member-status"><i class="bi bi-lock"></i> Khóa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4 font-monospace fw-bold text-primary">2374820065</td>
+                <td>
+                  <strong class="d-block text-dark">Nguyễn Ngọc Hoa</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">hoa.nn@uniclub.vn</span>
+                </td>
+                <td>Ban Sự kiện</td>
+                <td><span class="badge bg-warning text-dark">Trưởng ban Sự kiện</span></td>
+                <td><span class="badge badge-status-active badge-member-status">Hoạt động</span></td>
+                <td><span class="fw-bold text-success">92 điểm</span></td>
+                <td class="text-end pe-4">
+                  <a href="member-detail.html" class="btn btn-sm btn-outline-primary rounded-pill me-1">Chi tiết</a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill btn-toggle-member-status"><i class="bi bi-lock"></i> Khóa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4 font-monospace fw-bold text-primary">2374820180</td>
+                <td>
+                  <strong class="d-block text-dark">Đỗ Thị Thơ</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">tho.dt@uniclub.vn</span>
+                </td>
+                <td>Ban Truyền thông</td>
+                <td><span class="badge bg-success">Trưởng ban Truyền thông</span></td>
+                <td><span class="badge badge-status-active badge-member-status">Hoạt động</span></td>
+                <td><span class="fw-bold text-success">94 điểm</span></td>
+                <td class="text-end pe-4">
+                  <a href="member-detail.html" class="btn btn-sm btn-outline-primary rounded-pill me-1">Chi tiết</a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill btn-toggle-member-status"><i class="bi bi-lock"></i> Khóa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4 font-monospace fw-bold text-primary">2374820088</td>
+                <td>
+                  <strong class="d-block text-dark">Trần Văn An</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">an.tv@uniclub.vn</span>
+                </td>
+                <td>Ban Chuyên môn</td>
+                <td><span class="badge bg-light text-dark border">Thành viên</span></td>
+                <td><span class="badge badge-status-active badge-member-status">Hoạt động</span></td>
+                <td><span class="fw-bold text-dark">88 điểm</span></td>
+                <td class="text-end pe-4">
+                  <a href="member-detail.html" class="btn btn-sm btn-outline-primary rounded-pill me-1">Chi tiết</a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill btn-toggle-member-status"><i class="bi bi-lock"></i> Khóa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4 font-monospace fw-bold text-primary">2374820099</td>
+                <td>
+                  <strong class="d-block text-dark">Lê Thị Bích</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">bich.lt@uniclub.vn</span>
+                </td>
+                <td>Ban Sự kiện</td>
+                <td><span class="badge bg-light text-dark border">Thành viên</span></td>
+                <td><span class="badge badge-status-active badge-member-status">Hoạt động</span></td>
+                <td><span class="fw-bold text-dark">85 điểm</span></td>
+                <td class="text-end pe-4">
+                  <a href="member-detail.html" class="btn btn-sm btn-outline-primary rounded-pill me-1">Chi tiết</a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill btn-toggle-member-status"><i class="bi bi-lock"></i> Khóa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4 font-monospace fw-bold text-primary">2374820101</td>
+                <td>
+                  <strong class="d-block text-dark">Hoàng Minh Cường</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">cuong.hm@uniclub.vn</span>
+                </td>
+                <td>Ban Đối ngoại</td>
+                <td><span class="badge bg-secondary">Trưởng ban Đối ngoại</span></td>
+                <td><span class="badge badge-status-active badge-member-status">Hoạt động</span></td>
+                <td><span class="fw-bold text-dark">90 điểm</span></td>
+                <td class="text-end pe-4">
+                  <a href="member-detail.html" class="btn btn-sm btn-outline-primary rounded-pill me-1">Chi tiết</a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill btn-toggle-member-status"><i class="bi bi-lock"></i> Khóa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4 font-monospace fw-bold text-primary">2374820102</td>
+                <td>
+                  <strong class="d-block text-dark">Phạm Hải Đăng</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">dang.ph@uniclub.vn</span>
+                </td>
+                <td>Ban Đối ngoại</td>
+                <td><span class="badge bg-light text-dark border">Thành viên</span></td>
+                <td><span class="badge badge-status-active badge-member-status">Hoạt động</span></td>
+                <td><span class="fw-bold text-dark">82 điểm</span></td>
+                <td class="text-end pe-4">
+                  <a href="member-detail.html" class="btn btn-sm btn-outline-primary rounded-pill me-1">Chi tiết</a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill btn-toggle-member-status"><i class="bi bi-lock"></i> Khóa</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4 font-monospace fw-bold text-primary">2374820103</td>
+                <td>
+                  <strong class="d-block text-dark">Vũ Thúy Hằng</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">hang.vt@uniclub.vn</span>
+                </td>
+                <td>Ban Truyền thông</td>
+                <td><span class="badge bg-light text-dark border">Thành viên</span></td>
+                <td><span class="badge badge-status-rejected badge-member-status">Tạm khóa</span></td>
+                <td><span class="fw-bold text-muted">60 điểm</span></td>
+                <td class="text-end pe-4">
+                  <a href="member-detail.html" class="btn btn-sm btn-outline-primary rounded-pill me-1">Chi tiết</a>
+                  <button class="btn btn-sm btn-outline-success rounded-pill btn-toggle-member-status"><i class="bi bi-unlock"></i> Mở</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="ps-4 font-monospace fw-bold text-primary">2374820104</td>
+                <td>
+                  <strong class="d-block text-dark">Đinh Quang Khải</strong>
+                  <span class="text-muted" style="font-size: 0.75rem;">khai.dq@uniclub.vn</span>
+                </td>
+                <td>Ban Chuyên môn</td>
+                <td><span class="badge bg-light text-dark border">Thành viên</span></td>
+                <td><span class="badge badge-status-active badge-member-status">Hoạt động</span></td>
+                <td><span class="fw-bold text-dark">87 điểm</span></td>
+                <td class="text-end pe-4">
+                  <a href="member-detail.html" class="btn btn-sm btn-outline-primary rounded-pill me-1">Chi tiết</a>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill btn-toggle-member-status"><i class="bi bi-lock"></i> Khóa</button>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ADD MEMBER MODAL -->
+  <div class="modal fade" id="addMemberModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Thêm Hội viên Mới</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form class="needs-validation" data-success-msg="Thêm hồ sơ hội viên mới thành công!" novalidate>
+          <div class="modal-body py-3">
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Họ và tên *</label>
+              <input type="text" class="form-control" placeholder="Nguyễn Văn B" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">MSSV *</label>
+              <input type="text" class="form-control font-monospace" placeholder="2474820..." required pattern="[A-Za-z0-9]{6,10}">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Email *</label>
+              <input type="email" class="form-control" placeholder="student@uniclub.vn" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Ban / Bộ phận *</label>
+              <select class="form-select" required>
+                <option value="Ban Chuyên môn">Ban Chuyên môn</option>
+                <option value="Ban Sự kiện">Ban Sự kiện</option>
+                <option value="Ban Truyền thông">Ban Truyền thông</option>
+                <option value="Ban Đối ngoại">Ban Đối ngoại</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Chức vụ</label>
+              <select class="form-select">
+                <option value="Thành viên">Thành viên</option>
+                <option value="Phó ban">Phó ban</option>
+                <option value="Trưởng ban">Trưởng ban</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0">
+            <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Lưu Hội viên</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script src="../assets/js/validation.js"></script>
+</body>
+</html>
