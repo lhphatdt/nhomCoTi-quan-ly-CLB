@@ -363,9 +363,9 @@ export function canPerformAction(
     case 'create_event':
       return user.role === 'event_lead' || user.role === 'treasurer';
     case 'manage_members':
-      return user.role === 'admin';
+      return false;
     case 'run_cicd':
-      return user.role === 'admin' || user.role === 'event_lead';
+      return user.role === 'event_lead';
     default:
       return false;
   }
