@@ -1,66 +1,79 @@
-/* UniClub Hub - Enterprise Frontend Stylesheet */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* UniClub Hub - Refined Enterprise Frontend Stylesheet */
 :root {
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
+  --primary-color: #1d4ed8;
+  --primary-hover: #1e40af;
   --secondary-color: #475569;
-  --success-color: #10b981;
-  --warning-color: #f59e0b;
-  --danger-color: #ef4444;
-  --info-color: #06b6d4;
+  --success-color: #059669;
+  --warning-color: #d97706;
+  --danger-color: #dc2626;
+  --info-color: #0284c7;
   --dark-color: #0f172a;
   --light-bg: #f8fafc;
   --border-color: #e2e8f0;
-  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --card-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--light-bg);
   color: #1e293b;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+
+code, pre, .font-monospace {
+  font-family: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
 }
 
 /* Navbar */
 .navbar-uniclub {
   background: #ffffff;
   border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-  padding: 0.75rem 0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  padding: 0.65rem 0;
 }
 .navbar-brand-badge {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
 }
 .nav-link {
   font-weight: 500;
   color: #475569;
-  padding: 0.5rem 0.85rem !important;
-  border-radius: 8px;
-  transition: all 0.2s;
+  padding: 0.45rem 0.8rem !important;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  font-size: 0.875rem;
 }
 .nav-link:hover, .nav-link.active {
   color: var(--primary-color) !important;
-  background-color: #eff6ff;
+  background-color: #f1f5f9;
 }
 
 /* Cards */
 .card-uniclub {
   background: #ffffff;
   border: 1px solid var(--border-color);
-  border-radius: 14px;
+  border-radius: 12px;
   box-shadow: var(--card-shadow);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .card-uniclub:hover {
   box-shadow: var(--card-shadow-hover);
@@ -68,29 +81,33 @@ body {
 .card-header-clean {
   background: transparent;
   border-bottom: 1px solid var(--border-color);
-  padding: 1.15rem 1.35rem;
+  padding: 1rem 1.25rem;
 }
 
-/* Badges */
+/* Badges & Status Tags */
 .badge-status-pending {
   background-color: #fef3c7;
   color: #92400e;
   border: 1px solid #fde68a;
+  font-weight: 600;
 }
 .badge-status-active, .badge-status-approved {
   background-color: #d1fae5;
   color: #065f46;
   border: 1px solid #a7f3d0;
+  font-weight: 600;
 }
 .badge-status-kicked, .badge-status-rejected {
   background-color: #fee2e2;
   color: #991b1b;
   border: 1px solid #fecaca;
+  font-weight: 600;
 }
 .badge-status-attended {
   background-color: #e0e7ff;
   color: #3730a3;
   border: 1px solid #c7d2fe;
+  font-weight: 600;
 }
 
 /* Admin Layout */
@@ -103,33 +120,33 @@ body {
   background: #0f172a;
   color: #94a3b8;
   flex-shrink: 0;
-  transition: all 0.3s;
+  transition: all 0.25s ease-in-out;
   display: flex;
   flex-direction: column;
 }
 .admin-sidebar .sidebar-heading {
   font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   font-weight: 700;
   color: #64748b;
   padding: 0.85rem 1.25rem 0.35rem;
 }
 .admin-sidebar .nav-link {
   color: #cbd5e1;
-  padding: 0.6rem 1.25rem !important;
+  padding: 0.55rem 1.25rem !important;
   border-radius: 0;
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
 }
 .admin-sidebar .nav-link:hover {
   background-color: #1e293b;
   color: #fff !important;
 }
 .admin-sidebar .nav-link.active {
-  background-color: #2563eb;
+  background-color: var(--primary-color);
   color: #fff !important;
   font-weight: 600;
 }
@@ -142,22 +159,24 @@ body {
 
 /* KPI Summary Cards */
 .kpi-card {
-  border-radius: 14px;
-  padding: 1.25rem;
+  border-radius: 12px;
+  padding: 1.15rem 1.25rem;
   border: 1px solid var(--border-color);
   background: #fff;
   display: flex;
   align-items: center;
   gap: 1rem;
+  box-shadow: var(--card-shadow);
 }
 .kpi-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.25rem;
+  flex-shrink: 0;
 }
 
 /* QR Code Mockup */
@@ -165,7 +184,7 @@ body {
   width: 280px;
   height: 280px;
   border: 2px dashed #3b82f6;
-  border-radius: 20px;
+  border-radius: 16px;
   margin: 0 auto;
   position: relative;
   background: #f0f9ff;
@@ -190,17 +209,17 @@ body {
 
 /* Single Active Session Banner */
 .session-alert-banner {
-  background: linear-gradient(90deg, #1e1b4b, #312e81);
-  color: #e0e7ff;
+  background: linear-gradient(90deg, #0f172a, #1e293b);
+  color: #e2e8f0;
   padding: 0.85rem 1.25rem;
-  border-radius: 12px;
+  border-radius: 10px;
   margin-bottom: 1.5rem;
-  border: 1px solid #4338ca;
+  border: 1px solid #334155;
 }
 
 /* Star Rating */
 .star-rating {
-  font-size: 1.75rem;
+  font-size: 1.6rem;
   color: #cbd5e1;
   cursor: pointer;
   display: inline-flex;
@@ -225,14 +244,40 @@ body {
   font-size: 0.75rem;
 }
 .avatar-md {
-  width: 42px;
-  height: 42px;
-  font-size: 0.95rem;
+  width: 40px;
+  height: 40px;
+  font-size: 0.9rem;
 }
 .avatar-lg {
-  width: 56px;
-  height: 56px;
-  font-size: 1.25rem;
+  width: 52px;
+  height: 52px;
+  font-size: 1.15rem;
+}
+
+/* Empty States */
+.empty-state-box {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #64748b;
+}
+.empty-state-icon {
+  font-size: 3rem;
+  color: #94a3b8;
+  margin-bottom: 0.75rem;
+}
+
+/* Buttons */
+.btn {
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
 }
 
 /* Footer */
@@ -240,9 +285,9 @@ footer.uniclub-footer {
   margin-top: auto;
   background: #fff;
   border-top: 1px solid var(--border-color);
-  padding: 2rem 0 1.25rem;
+  padding: 1.75rem 0 1.25rem;
   color: #64748b;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
 }
 
 /* Responsive */

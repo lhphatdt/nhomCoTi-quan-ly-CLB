@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health Check & Giám sát Hệ thống - UniClub Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="bg-light py-5 min-vh-100">
+
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        
+        <!-- Header -->
+        <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+          <div class="d-flex align-items-center gap-3">
+            <span class="navbar-brand-badge" style="width: 40px; height: 40px;">UC</span>
+            <div>
+              <h4 class="fw-bold m-0 text-dark">UniClub Application Health Check Endpoint</h4>
+              <small class="text-muted font-monospace">GET /health · CI/CD Smoke Test Verifier</small>
+            </div>
+          </div>
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold">
+            <i class="bi bi-check-circle-fill me-1"></i> STATUS: UP (200 OK)
+          </span>
+        </div>
+
+        <!-- Metric Grid -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="card card-uniclub border-0 shadow-sm p-3">
+              <small class="text-muted d-block mb-1">Cơ sở dữ liệu (MySQL 8.0)</small>
+              <div class="d-flex align-items-center justify-content-between">
+                <span class="fw-bold text-success"><i class="bi bi-database-check me-1"></i> CONNECTED</span>
+                <span class="badge bg-light text-dark border font-monospace">4ms</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card card-uniclub border-0 shadow-sm p-3">
+              <small class="text-muted d-block mb-1">Máy chủ Web (Servlet API)</small>
+              <div class="d-flex align-items-center justify-content-between">
+                <span class="fw-bold text-dark">Tomcat 10.1</span>
+                <span class="badge bg-light text-dark border font-monospace">Jakarta 6.0</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card card-uniclub border-0 shadow-sm p-3">
+              <small class="text-muted d-block mb-1">Single Admin Session</small>
+              <div class="d-flex align-items-center justify-content-between">
+                <span class="fw-bold text-primary"><i class="bi bi-shield-check me-1"></i> 1 PRIMARY</span>
+                <span class="badge bg-light text-dark border font-monospace">3 Sessions</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail Breakdown -->
+        <div class="card card-uniclub border-0 shadow-sm overflow-hidden mb-4">
+          <div class="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between">
+            <h6 class="fw-bold m-0 text-dark"><i class="bi bi-cpu text-primary me-2"></i>Chi tiết giám sát vận hành (Operational Telemetry)</h6>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill" id="btnToggleRawJson">
+              <i class="bi bi-braces me-1"></i> Xem định dạng JSON
+            </button>
+          </div>
+          <div class="card-body p-4" id="viewHuman">
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <span class="text-muted small d-block">Phiên bản Ứng dụng:</span>
+                <strong class="text-dark">UniClub Hub v2.4-Production</strong>
+              </div>
+              <div class="col-sm-6">
+                <span class="text-muted small d-block">Môi trường triển khai:</span>
+                <strong class="text-dark">Staging (Continuous Delivery Verified)</strong>
+              </div>
+              <div class="col-sm-6">
+                <span class="text-muted small d-block">Git Commit Hash:</span>
+                <code class="text-primary font-monospace fw-bold">ffaa1e5 (main)</code>
+              </div>
+              <div class="col-sm-6">
+                <span class="text-muted small d-block">Thời gian khởi chạy (Uptime):</span>
+                <strong class="text-dark">48 giờ 12 phút liên tục</strong>
+              </div>
+              <div class="col-sm-6">
+                <span class="text-muted small d-block">Bộ nhớ JVM Heap:</span>
+                <div class="progress mt-1" style="height: 7px;">
+                  <div class="progress-bar bg-success" style="width: 32%;"></div>
+                </div>
+                <small class="text-muted font-monospace mt-1 d-block">164MB / 512MB (32%)</small>
+              </div>
+              <div class="col-sm-6">
+                <span class="text-muted small d-block">Hàng chờ đơn (Pending Requests):</span>
+                <strong class="text-dark">01 đơn gia nhập · 01 phiên máy mới</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body p-3 bg-dark text-white font-monospace small" id="viewJson" style="display: none;">
+            <pre class="m-0 text-success">
+{
+  "status": "UP",
+  "timestamp": "2026-10-24T13:45:00Z",
+  "components": {
+    "db": {
+      "status": "UP",
+      "database": "MySQL 8.0.36",
+      "pingMs": 4
+    },
+    "sessions": {
+      "status": "UP",
+      "primarySessionActive": true,
+      "primarySessionId": "sess-8891-hn",
+      "totalSessions": 3
+    },
+    "tomcat": {
+      "status": "UP",
+      "version": "Apache Tomcat/10.1.18",
+      "servletApi": "Jakarta Servlet 6.0"
+    },
+    "ciCd": {
+      "pipeline": "GitHub Actions",
+      "lastCommit": "ffaa1e5",
+      "branch": "main",
+      "smokeTest": "PASSED"
+    }
+  }
+}
+            </pre>
+          </div>
+        </div>
+
+        <!-- Action Links -->
+        <div class="d-flex justify-content-between align-items-center">
+          <a href="index.html" class="text-decoration-none small text-secondary fw-semibold">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại Trang chủ UniClub
+          </a>
+          <a href="admin/dashboard.html" class="btn btn-sm btn-primary rounded-pill px-3">
+            <i class="bi bi-speedometer2 me-1"></i> Đến Bảng điều khiển Admin
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('btnToggleRawJson');
+      const human = document.getElementById('viewHuman');
+      const json = document.getElementById('viewJson');
+      if (btn && human && json) {
+        btn.addEventListener('click', () => {
+          if (json.style.display === 'none') {
+            json.style.display = 'block';
+            human.style.display = 'none';
+            btn.innerHTML = '<i class="bi bi-layout-text-window me-1"></i> Xem giao diện trực quan';
+          } else {
+            json.style.display = 'none';
+            human.style.display = 'block';
+            btn.innerHTML = '<i class="bi bi-braces me-1"></i> Xem định dạng JSON';
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

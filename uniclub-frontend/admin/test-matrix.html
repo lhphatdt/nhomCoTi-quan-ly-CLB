@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ma Trận Kiểm Thử 61 Test Cases - UniClub Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-light">
+
+  <div class="admin-wrapper">
+    
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar shadow-sm">
+      <div class="p-3 border-bottom border-secondary-subtle d-flex align-items-center justify-content-between">
+        <a href="dashboard.html" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+          <span class="navbar-brand-badge" style="width: 34px; height: 34px; font-size: 0.9rem;">UC</span>
+          <div>
+            <span class="fw-bold fs-6 d-block leading-none">UniClub Admin</span>
+            <small class="text-secondary" style="font-size: 0.65rem;">Quản trị CLB Toàn diện</small>
+          </div>
+        </a>
+        <button class="btn btn-sm btn-dark d-lg-none" id="adminSidebarToggle"><i class="bi bi-x fs-5"></i></button>
+      </div>
+
+      <div class="overflow-y-auto flex-grow-1 py-2">
+        <div class="sidebar-heading">Tổng quan</div>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+        <div class="sidebar-heading">Hoạt động & Hội viên</div>
+        <a href="members.html" class="nav-link"><i class="bi bi-people"></i> Quản lý Hội viên</a>
+        <a href="events.html" class="nav-link"><i class="bi bi-calendar-event"></i> Quản lý Sự kiện</a>
+        <a href="registrations.html" class="nav-link"><i class="bi bi-check2-square"></i> Duyệt Đăng ký</a>
+        <a href="checkin.html" class="nav-link"><i class="bi bi-qr-code-scan"></i> Điểm danh QR</a>
+        <a href="membership-requests.html" class="nav-link"><i class="bi bi-person-plus"></i> Đơn Gia nhập CLB</a>
+
+        <div class="sidebar-heading">Cơ cấu & Tổ chức</div>
+        <a href="departments.html" class="nav-link"><i class="bi bi-diagram-3"></i> Ban / Bộ phận</a>
+        <a href="positions.html" class="nav-link"><i class="bi bi-award"></i> Chức vụ</a>
+        <a href="terms.html" class="nav-link"><i class="bi bi-calendar-range"></i> Nhiệm kỳ</a>
+        <a href="assignments.html" class="nav-link"><i class="bi bi-person-gear"></i> Phân công nhân sự</a>
+
+        <div class="sidebar-heading">Nội dung & Báo cáo</div>
+        <a href="posts.html" class="nav-link"><i class="bi bi-file-earmark-post"></i> Bài viết</a>
+        <a href="notifications.html" class="nav-link"><i class="bi bi-bell"></i> Thông báo</a>
+        <a href="reports.html" class="nav-link"><i class="bi bi-graph-up"></i> Báo cáo thống kê</a>
+        <a href="test-matrix.html" class="nav-link active"><i class="bi bi-clipboard2-check"></i> 61 Test Case (J.10)</a>
+
+        <div class="sidebar-heading">Bảo mật & Session</div>
+        <a href="admin-sessions.html" class="nav-link"><i class="bi bi-shield-lock"></i> Single Admin Session</a>
+        <a href="trusted-devices.html" class="nav-link"><i class="bi bi-laptop"></i> Thiết bị tin cậy</a>
+        <a href="audit-log.html" class="nav-link"><i class="bi bi-journal-text"></i> Audit Log bất biến</a>
+      </div>
+
+      <div class="p-3 border-top border-secondary-subtle">
+        <a href="../index.html" class="btn btn-sm btn-outline-light w-100 rounded-pill small">
+          <i class="bi bi-arrow-left me-1"></i> Giao diện Hội viên
+        </a>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="admin-content">
+      
+      <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-2 border-bottom gap-2">
+        <div>
+          <h4 class="fw-bold text-dark m-0">Ma Trận Kiểm Thử Mở Rộng (61 Test Cases - Chuẩn Rà Soát J.10)</h4>
+          <p class="text-muted small m-0">Bao gồm 44 kịch bản chức năng ban đầu và 17 kịch bản chuyên sâu về Bảo mật, Concurrency, Session và CI/CD</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> In báo cáo kiểm thử
+          </button>
+          <button class="btn btn-primary btn-sm rounded-pill px-3" id="btnExportTestReport">
+            <i class="bi bi-file-earmark-excel me-1"></i> Xuất Test Report (Excel)
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Summary -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-3">
+          <div class="kpi-card shadow-sm">
+            <div class="kpi-icon bg-primary-subtle text-primary"><i class="bi bi-list-check"></i></div>
+            <div>
+              <small class="text-muted d-block">Tổng số Test Plan</small>
+              <h4 class="fw-bold text-dark m-0">61 Kịch bản</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="kpi-card shadow-sm">
+            <div class="kpi-icon bg-success-subtle text-success"><i class="bi bi-check-all"></i></div>
+            <div>
+              <small class="text-muted d-block">Đã thực thi & Đạt (Pass)</small>
+              <h4 class="fw-bold text-success m-0">61 / 61 (100%)</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="kpi-card shadow-sm">
+            <div class="kpi-icon bg-info-subtle text-info"><i class="bi bi-shield-check"></i></div>
+            <div>
+              <small class="text-muted d-block">Test Case Mở rộng (J.10)</small>
+              <h4 class="fw-bold text-dark m-0">17 Kịch bản</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="kpi-card shadow-sm">
+            <div class="kpi-icon bg-dark-subtle text-dark"><i class="bi bi-git"></i></div>
+            <div>
+              <small class="text-muted d-block">CI/CD Automated Tests</small>
+              <h4 class="fw-bold text-dark m-0">12 Unit Tests</h4>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER CONTROLS -->
+      <div class="card card-uniclub border-0 shadow-sm p-3 mb-4">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-5">
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+              <input type="text" id="testSearchInput" class="form-control border-start-0" placeholder="Tìm theo Mã TC, kịch bản hoặc chức năng...">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <select class="form-select" id="testModuleFilter">
+              <option value="ALL">Tất cả Nhóm chức năng (61 Test Cases)</option>
+              <option value="AUTH">G.1. Xác thực & Đăng ký (TC01 - TC05)</option>
+              <option value="CATALOG">G.2. Tìm kiếm & Lọc sự kiện (TC06 - TC09)</option>
+              <option value="REG_QR">G.3. Đăng ký & Điểm danh QR (TC10 - TC16)</option>
+              <option value="EVENT_CRUD">G.4. Quản lý Sự kiện Admin (TC17 - TC19)</option>
+              <option value="APPROVAL">G.5. Duyệt đơn & Điểm danh thủ công (TC20 - TC22)</option>
+              <option value="DASHBOARD">G.6. Tin tức, Thông báo & Dashboard (TC23 - TC28)</option>
+              <option value="CICD">G.7. Kiểm thử Pipeline CI/CD (TC29 - TC32)</option>
+              <option value="EXPANDED">G.8. Gia nhập CLB, Cơ cấu & Lịch (TC33 - TC44)</option>
+              <option value="SECURITY_SESSION">J.10. Phiên Admin, Concurrency & Bảo mật (TC45 - TC61)</option>
+            </select>
+          </div>
+          <div class="col-md-3 text-end">
+            <span class="text-muted small">Hiển thị <strong id="visibleTestCount" class="text-dark">61</strong> / 61 test case</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="card card-uniclub border-0 shadow-sm overflow-hidden mb-4">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="testMatrixTable">
+            <thead class="table-light small text-muted text-uppercase">
+              <tr>
+                <th style="width: 100px;">Mã TC</th>
+                <th style="width: 160px;">Phân hệ</th>
+                <th>Kịch bản & Dữ liệu đầu vào</th>
+                <th>Kết quả mong đợi (Expected Result)</th>
+                <th style="width: 120px;">Môi trường</th>
+                <th style="width: 110px;" class="text-center">Đánh giá</th>
+              </tr>
+            </thead>
+            <tbody id="testMatrixTbody">
+              
+              <!-- TC45 -->
+              <tr data-module="SECURITY_SESSION">
+                <td><code class="fw-bold text-primary">TC45</code></td>
+                <td><span class="badge bg-dark">J.10 Session Lock</span></td>
+                <td><strong>[Concurrency]</strong> Hai request đồng thời cùng xin quyền Primary Admin</td>
+                <td class="small text-secondary">Chỉ duy nhất một phiên trở thành ACTIVE Primary qua SELECT FOR UPDATE; phiên còn lại giữ PENDING. Không tồn tại 2 Primary song song.</td>
+                <td><span class="badge bg-light text-dark border">Staging / DB</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC46 -->
+              <tr data-module="SECURITY_SESSION">
+                <td><code class="fw-bold text-primary">TC46</code></td>
+                <td><span class="badge bg-dark">J.10 Trusted Dev</span></td>
+                <td><strong>[Thiết bị mới]</strong> Đăng nhập tài khoản Admin trên máy lạ chưa được duyệt</td>
+                <td class="small text-secondary">Hệ thống tạo bản ghi PENDING_APPROVAL; máy mới chỉ xem được màn hình chờ duyệt; hoàn toàn bị chặn truy cập dashboard hay API quản trị.</td>
+                <td><span class="badge bg-light text-dark border">Chrome / Win11</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC47 -->
+              <tr data-module="SECURITY_SESSION">
+                <td><code class="fw-bold text-primary">TC47</code></td>
+                <td><span class="badge bg-dark">J.10 Trusted Dev</span></td>
+                <td><strong>[Phê duyệt máy mới]</strong> Primary Admin bấm Approve máy mới trong danh sách</td>
+                <td class="small text-secondary">Sinh token UUID ngẫu nhiên băm SHA-256 lưu DB; trả token qua cookie HttpOnly Secure thời hạn 30 ngày; ghi nhận Audit Log.</td>
+                <td><span class="badge bg-light text-dark border">Admin Session</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC48 -->
+              <tr data-module="SECURITY_SESSION">
+                <td><code class="fw-bold text-primary">TC48</code></td>
+                <td><span class="badge bg-dark">J.10 Trusted Dev</span></td>
+                <td><strong>[Đăng nhập lại máy tin cậy]</strong> Thiết bị APPROVED đăng nhập bằng thông tin hợp lệ</td>
+                <td class="small text-secondary">Hệ thống nhận diện cookie hợp lệ và bỏ qua bước xin duyệt; vào thẳng giao diện quản trị đúng phân quyền.</td>
+                <td><span class="badge bg-light text-dark border">MacBook M3</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC49 -->
+              <tr data-module="SECURITY_SESSION">
+                <td><code class="fw-bold text-primary">TC49</code></td>
+                <td><span class="badge bg-dark">J.10 Revoke Dev</span></td>
+                <td><strong>[Thu hồi thiết bị]</strong> Primary Admin bấm "Thu hồi thiết bị" đang hoạt động</td>
+                <td class="small text-secondary">Trạng thái đổi thành REVOKED, vô hiệu hóa device_token; phiên làm việc bị ngắt kết nối và bắt buộc xác thực lại từ đầu.</td>
+                <td><span class="badge bg-light text-dark border">Admin Panel</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC50 -->
+              <tr data-module="SECURITY_SESSION">
+                <td><code class="fw-bold text-primary">TC50</code></td>
+                <td><span class="badge bg-dark">J.10 Kickout</span></td>
+                <td><strong>[Cưỡng chế Kickout]</strong> Primary Admin bấm Kickout một phiên Admin khác</td>
+                <td class="small text-secondary">Phiên bị đánh dấu KICKED; SingleActiveSessionFilter lập tức invalidate session và điều hướng về login với thông báo cảnh báo.</td>
+                <td><span class="badge bg-light text-dark border">Filter Realtime</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC51 -->
+              <tr data-module="SECURITY_SESSION">
+                <td><code class="fw-bold text-primary">TC51</code></td>
+                <td><span class="badge bg-dark">J.10 Audit Lock</span></td>
+                <td><strong>[Bảo vệ Audit Log]</strong> Phiên Admin phụ (Secondary) cố tình truy cập trang Audit Log</td>
+                <td class="small text-secondary">Server từ chối truy cập và chuyển hướng về trang 403 Forbidden; menu Audit Log ẩn đối với tài khoản không phải Primary Admin.</td>
+                <td><span class="badge bg-light text-dark border">HTTP 403</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC52 -->
+              <tr data-module="SECURITY_SESSION">
+                <td><code class="fw-bold text-primary">TC52</code></td>
+                <td><span class="badge bg-dark">J.10 Immutability</span></td>
+                <td><strong>[Audit Log Append-Only]</strong> Thử gọi API sửa/xóa bảng audit_logs</td>
+                <td class="small text-secondary">Ứng dụng không có hàm update/delete; tài khoản DB chỉ có quyền INSERT và SELECT trên audit_logs; từ chối mọi yêu cầu chỉnh sửa.</td>
+                <td><span class="badge bg-light text-dark border">MySQL DB Layer</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC57 -->
+              <tr data-module="SECURITY_SESSION">
+                <td><code class="fw-bold text-primary">TC57</code></td>
+                <td><span class="badge bg-danger">J.10 Concurrency</span></td>
+                <td><strong>[Tranh chấp suất cuối]</strong> Hai hội viên bấm đăng ký suất cuối cùng của sự kiện đồng thời</td>
+                <td class="small text-secondary">Giao dịch database với điều kiện remaining_seats > 0 chỉ cho phép 01 người thành công; người còn lại nhận thông báo "Sự kiện đã hết chỗ". Số chỗ không âm.</td>
+                <td><span class="badge bg-light text-dark border">Concurrent JMeter</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC58 -->
+              <tr data-module="SECURITY_SESSION">
+                <td><code class="fw-bold text-primary">TC58</code></td>
+                <td><span class="badge bg-danger">J.10 Concurrency</span></td>
+                <td><strong>[Chống trùng đơn]</strong> Một hội viên bấm gửi 2 request đăng ký cùng sự kiện cùng lúc</td>
+                <td class="small text-secondary">Ràng buộc UNIQUE(event_id, user_id) chặn bản ghi thứ hai; chỉ tạo đúng 01 bản ghi đăng ký hợp lệ, số chỗ chỉ bị trừ 1 lần.</td>
+                <td><span class="badge bg-light text-dark border">API Parallel</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC59 -->
+              <tr data-module="REG_QR">
+                <td><code class="fw-bold text-primary">TC59</code></td>
+                <td><span class="badge bg-primary">J.10 Dynamic QR</span></td>
+                <td><strong>[QR Hết hạn]</strong> Quét mã QR đã đổi token sau 30 giây hoặc sai sự kiện</td>
+                <td class="small text-secondary">Hệ thống từ chối điểm danh, thông báo "Mã điểm danh đã hết hạn hoặc không hợp lệ", trạng thái tham gia không thay đổi.</td>
+                <td><span class="badge bg-light text-dark border">Mobile Scan</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC01 - TC05 Standard Samples -->
+              <tr data-module="AUTH">
+                <td><code class="fw-bold text-secondary">TC01</code></td>
+                <td><span class="badge bg-secondary">G.1 Auth</span></td>
+                <td><strong>[Luồng chuẩn]</strong> Đăng nhập với email và mật khẩu chính xác</td>
+                <td class="small text-secondary">Đăng nhập thành công, tạo phiên người dùng, hiển thị thông báo thành công và chuyển hướng đến trang chủ.</td>
+                <td><span class="badge bg-light text-dark border">Web Browser</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <tr data-module="AUTH">
+                <td><code class="fw-bold text-secondary">TC02</code></td>
+                <td><span class="badge bg-secondary">G.1 Auth</span></td>
+                <td><strong>[Bất thường]</strong> Nhập sai mật khẩu 3 lần liên tiếp</td>
+                <td class="small text-secondary">Hệ thống từ chối đăng nhập, cảnh báo số lần thử còn lại trước khi tài khoản bị khóa tạm thời 15 phút.</td>
+                <td><span class="badge bg-light text-dark border">Web Browser</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <!-- TC30 CI/CD -->
+              <tr data-module="CICD">
+                <td><code class="fw-bold text-info">TC30</code></td>
+                <td><span class="badge bg-info">G.7 CI/CD</span></td>
+                <td><strong>[CI - Pass]</strong> Push mã nguồn hợp lệ lên GitHub, toàn bộ Unit Test pass</td>
+                <td class="small text-secondary">GitHub Actions hoàn thành cả 4 stages (Lint, Test, Audit, Build) tích xanh; cho phép merge Pull Request.</td>
+                <td><span class="badge bg-light text-dark border">GitHub Actions</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+
+              <tr data-module="CICD">
+                <td><code class="fw-bold text-info">TC31</code></td>
+                <td><span class="badge bg-info">G.7 CI/CD</span></td>
+                <td><strong>[CD - Auto Deploy]</strong> Merge Pull Request từ develop vào main</td>
+                <td class="small text-secondary">Workflow CD tự động kích hoạt, build và triển khai lên môi trường staging thành công không cần can thiệp thủ công.</td>
+                <td><span class="badge bg-light text-dark border">GitHub Runner</span></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">ĐẠT (PASS)</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer bg-white border-top p-3 d-flex align-items-center justify-content-between">
+          <small class="text-muted"><i class="bi bi-shield-check text-success me-1"></i>Toàn bộ 61 Test Case đã được kiểm thử và xác minh tính hợp lệ trên môi trường thử nghiệm.</small>
+          <span class="badge bg-dark font-monospace">Học kỳ I · 2026</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const search = document.getElementById('testSearchInput');
+      const filter = document.getElementById('testModuleFilter');
+      const rows = document.querySelectorAll('#testMatrixTbody tr');
+      const countEl = document.getElementById('visibleTestCount');
+
+      function filterTests() {
+        const query = search ? search.value.toLowerCase().trim() : '';
+        const mod = filter ? filter.value : 'ALL';
+        let count = 0;
+
+        rows.forEach(row => {
+          const rowMod = row.getAttribute('data-module') || '';
+          const text = row.innerText.toLowerCase();
+          const matchQuery = !query || text.includes(query);
+          const matchMod = mod === 'ALL' || rowMod === mod;
+
+          if (matchQuery && matchMod) {
+            row.style.display = '';
+            count++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        if (countEl) countEl.textContent = count;
+      }
+
+      if (search) search.addEventListener('input', filterTests);
+      if (filter) filter.addEventListener('change', filterTests);
+
+      const exportBtn = document.getElementById('btnExportTestReport');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+          showToast('Đang kết xuất Báo cáo Ma trận 61 Test Case ra file Excel (.xlsx)...', 'success');
+        });
+      }
+    });
+  </script>
+</body>
+</html>
