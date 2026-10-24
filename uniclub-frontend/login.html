@@ -86,14 +86,20 @@
           <div class="border-top pt-3 mt-2">
             <small class="text-muted fw-bold d-block mb-2">Đăng nhập nhanh dành cho Hội đồng chấm đồ án:</small>
             <div class="d-grid gap-2">
-              <a href="admin/dashboard.html" class="btn btn-sm btn-outline-dark rounded-pill text-start px-3 py-2">
+              <button type="button" id="btnQuickLoginAdmin" class="btn btn-sm btn-outline-dark rounded-pill text-start px-3 py-2">
                 <span class="fw-bold d-block text-primary"><i class="bi bi-shield-shaded me-1"></i> 1-Click: Vào vai Ban Chủ nhiệm (Admin)</span>
                 <span class="small text-muted" style="font-size: 0.75rem;">admin@uniclub.vn · Toàn quyền quản trị & Sessions</span>
-              </a>
-              <a href="index.html" class="btn btn-sm btn-outline-secondary rounded-pill text-start px-3 py-2">
+              </button>
+              <button type="button" id="btnQuickLoginMember" class="btn btn-sm btn-outline-secondary rounded-pill text-start px-3 py-2">
                 <span class="fw-bold d-block text-success"><i class="bi bi-person-check me-1"></i> 1-Click: Vào vai Hội viên (Sinh viên)</span>
-                <span class="small text-muted" style="font-size: 0.75rem;">hoivien@gmail.com · Đăng ký & Điểm danh QR</span>
-              </a>
+                <span class="small text-muted" style="font-size: 0.75rem;">hoivien@gmail.com · Chỉ xem danh bạ & Điểm danh QR</span>
+              </button>
+            </div>
+            <div id="sessionStatusArea" class="mt-2 text-center" style="display: none;">
+              <span class="badge bg-secondary-subtle text-dark border p-2 w-100">
+                <span id="activeUserNotice"></span>
+                <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none p-0 ms-2 fw-bold" onclick="window.logoutUniClub(); location.reload();">Đăng xuất ngay</button>
+              </span>
             </div>
           </div>
 
@@ -114,7 +120,81 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/validation.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const session = window.getUniClubSession ? window.getUniClubSession() : null;
+      if (session) {
+        const area = document.getElementById('sessionStatusArea');
+        const notice = document.getElementById('activeUserNotice');
+        if (area && notice) {
+          area.style.display = 'block';
+          notice.textContent = `Đang đăng nhập: ${session.name} (${session.role})`;
+        }
+      }
+
+      // Handle Form Submit
+      const form = document.querySelector('form');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const username = (form.username?.value || '').trim();
+          const isUserAdmin = username.toLowerCase().includes('admin');
+
+          if (isUserAdmin) {
+            window.setUniClubSession({
+              role: 'ADMIN',
+              name: 'Lưu Hữu Phát (Chủ nhiệm CLB)',
+              email: username
+            });
+            showToast('Đăng nhập thành công với vai trò Ban Chủ nhiệm!', 'success');
+            setTimeout(() => {
+              const urlParams = new URLSearchParams(window.location.search);
+              const redirect = urlParams.get('redirect') || 'admin/dashboard.html';
+              window.location.href = redirect;
+            }, 500);
+          } else {
+            window.setUniClubSession({
+              role: 'MEMBER',
+              name: 'Trần Văn An (Hội viên)',
+              email: username
+            });
+            showToast('Đăng nhập thành công với vai trò Hội viên!', 'success');
+            setTimeout(() => {
+              window.location.href = 'index.html';
+            }, 500);
+          }
+        });
+      }
+
+      // 1-Click Admin
+      document.getElementById('btnQuickLoginAdmin')?.addEventListener('click', function() {
+        window.setUniClubSession({
+          role: 'ADMIN',
+          name: 'Lưu Hữu Phát (Chủ nhiệm CLB)',
+          email: 'admin@uniclub.vn'
+        });
+        showToast('Đã cấp quyền Ban Chủ nhiệm (Admin)!', 'success');
+        setTimeout(() => {
+          window.location.href = 'admin/dashboard.html';
+        }, 300);
+      });
+
+      // 1-Click Member
+      document.getElementById('btnQuickLoginMember')?.addEventListener('click', function() {
+        window.setUniClubSession({
+          role: 'MEMBER',
+          name: 'Trần Văn An (Hội viên)',
+          email: 'hoivien@gmail.com'
+        });
+        showToast('Đã đăng nhập với tư cách Hội viên sinh viên!', 'success');
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 300);
+      });
+    });
+  </script>
 </body>
 </html>

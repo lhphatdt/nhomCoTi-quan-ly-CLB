@@ -13,13 +13,15 @@ import {
   DollarSign,
   ShieldAlert,
   ShieldCheck,
+  Lock,
 } from 'lucide-react';
-import { TreasuryTransaction, TransactionType } from '../types.ts';
+import { TreasuryTransaction, TransactionType, AuthUser } from '../types.ts';
 import {
   formatVND,
   formatDateTime,
   calculateTreasuryBalance,
   canApproveExpense,
+  canPerformAction,
 } from '../domain/clubLogic.ts';
 
 interface TreasuryTabProps {
@@ -27,6 +29,8 @@ interface TreasuryTabProps {
   onAddTransaction: (newTx: Omit<TreasuryTransaction, 'id' | 'voucherCode'>) => void;
   onApproveTransaction: (id: string) => { success: boolean; reason?: string };
   onRejectTransaction: (id: string) => void;
+  currentUser?: AuthUser | null;
+  onRequireAuth?: () => void;
 }
 
 export const TreasuryTab: React.FC<TreasuryTabProps> = ({
@@ -34,7 +38,11 @@ export const TreasuryTab: React.FC<TreasuryTabProps> = ({
   onAddTransaction,
   onApproveTransaction,
   onRejectTransaction,
+  currentUser,
+  onRequireAuth,
 }) => {
+  const canManageTreasury = canPerformAction(currentUser || null, 'manage_treasury');
+  const canApprove = canPerformAction(currentUser || null, 'approve_expense');
   const [filterType, setFilterType] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [approvalAlert, setApprovalAlert] = useState<string | null>(null);
@@ -126,6 +134,54 @@ export const TreasuryTab: React.FC<TreasuryTabProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* RBAC PERMISSION BANNER */}
+      {canApprove ? (
+        <div className="bg-emerald-50 border border-emerald-200/90 rounded-xl p-3 flex items-center justify-between text-xs text-emerald-900 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold">
+                Quyền Quản trị Tài chính: {currentUser?.roleTitle || 'Ban Quản trị'} (Toàn quyền Lập & Phê duyệt Thu/Chi)
+              </span>
+              <p className="text-[11px] text-emerald-700 mt-0.5">
+                Bạn có thẩm quyền giải ngân, lập chứng từ quỹ và thực hiện kiểm tra an toàn số dư khả dụng (canApproveExpense).
+              </p>
+            </div>
+          </div>
+          <span className="hidden sm:inline-block px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 rounded-md border border-emerald-200">
+            Treasury: Authorized
+          </span>
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200/90 rounded-xl p-3 flex items-center justify-between text-xs text-amber-900 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold">
+                Chế độ Minh bạch Tài chính ({currentUser ? `${currentUser.roleTitle} (${currentUser.fullName})` : 'Khách tham quan / Chưa đăng nhập'})
+              </span>
+              <p className="text-[11px] text-amber-800 mt-0.5">
+                {currentUser
+                  ? 'Theo quy chế CLB, thành viên có quyền xem báo cáo sổ quỹ công khai nhưng không có quyền lập phiếu hoặc duyệt chi ngân sách.'
+                  : 'Bạn chưa đăng nhập. Vui lòng đăng nhập với tài khoản Ban Chủ nhiệm hoặc Thủ quỹ để thực hiện thu/chi.'}
+              </p>
+            </div>
+          </div>
+          {!currentUser && onRequireAuth && (
+            <button
+              onClick={onRequireAuth}
+              className="px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors shrink-0 shadow-xs"
+            >
+              Đăng nhập ngay
+            </button>
+          )}
+        </div>
+      )}
+
       {/* FINANCIAL 4 INDICATOR STATS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Income */}
@@ -262,16 +318,33 @@ export const TreasuryTab: React.FC<TreasuryTabProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              setShowAddModal(true);
-              setApprovalAlert(null);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-xs"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Lập Phiếu Thu / Chi Mới</span>
-          </button>
+          {canManageTreasury ? (
+            <button
+              onClick={() => {
+                setShowAddModal(true);
+                setApprovalAlert(null);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Lập Phiếu Thu / Chi Mới</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (!currentUser && onRequireAuth) {
+                  onRequireAuth();
+                } else {
+                  alert('Từ chối phân quyền (403): Chỉ Ban Chủ nhiệm hoặc Thủ quỹ mới có quyền lập chứng từ Thu/Chi!');
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg transition-colors border border-slate-200"
+              title="Chỉ Ban Chủ nhiệm hoặc Thủ quỹ có quyền lập phiếu"
+            >
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+              <span>Lập phiếu (Khóa)</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -356,22 +429,29 @@ export const TreasuryTab: React.FC<TreasuryTabProps> = ({
                     {/* Actions */}
                     <td className="px-4 py-3 text-right">
                       {isPending ? (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleApprove(tx)}
-                            title="Phê duyệt chi ngân sách"
-                            className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-md transition-colors"
-                          >
-                            Duyệt chi
-                          </button>
-                          <button
-                            onClick={() => onRejectTransaction(tx.id)}
-                            title="Từ chối chi"
-                            className="px-2.5 py-1 text-xs font-semibold text-rose-800 bg-rose-100 hover:bg-rose-200 rounded-md transition-colors"
-                          >
-                            Từ chối
-                          </button>
-                        </div>
+                        canApprove ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleApprove(tx)}
+                              title="Phê duyệt chi ngân sách"
+                              className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-md transition-colors"
+                            >
+                              Duyệt chi
+                            </button>
+                            <button
+                              onClick={() => onRejectTransaction(tx.id)}
+                              title="Từ chối chi"
+                              className="px-2.5 py-1 text-xs font-semibold text-rose-800 bg-rose-100 hover:bg-rose-200 rounded-md transition-colors"
+                            >
+                              Từ chối
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium italic">
+                            <Lock className="w-3 h-3 text-slate-400" />
+                            Chờ duyệt (Chỉ xem)
+                          </span>
+                        )
                       ) : (
                         <span className="text-[11px] text-slate-400 font-mono">Đã xử lý</span>
                       )}

@@ -348,24 +348,60 @@ export function authenticateUser(
   };
 }
 
+export type ClubRBACAction =
+  | 'manage_members'
+  | 'approve_member'
+  | 'delete_member'
+  | 'add_score'
+  | 'approve_expense'
+  | 'manage_treasury'
+  | 'create_event'
+  | 'manage_events'
+  | 'register_event'
+  | 'run_cicd'
+  | 'view_overview';
+
 export function canPerformAction(
   user: AuthUser | null,
-  action: 'manage_members' | 'approve_expense' | 'create_event' | 'run_cicd' | 'view_overview'
+  action: ClubRBACAction
 ): boolean {
-  if (!user) return false;
+  if (!user) {
+    // Unauthenticated visitors have only public view permissions
+    return action === 'view_overview';
+  }
+
+  // Admin has full omnipotent access to all features
   if (user.role === 'admin') return true;
 
   switch (action) {
     case 'view_overview':
       return true;
+
     case 'approve_expense':
+    case 'manage_treasury':
+      // Only Admin and Treasurer can manage/approve finances
       return user.role === 'treasurer';
+
     case 'create_event':
-      return user.role === 'event_lead' || user.role === 'treasurer';
-    case 'manage_members':
-      return false;
-    case 'run_cicd':
+    case 'manage_events':
+      // Event Lead can create & manage events
       return user.role === 'event_lead';
+
+    case 'register_event':
+      // Any authenticated club member, lead, or treasurer can register for events
+      return true;
+
+    case 'run_cicd':
+      // Technical lead or Event lead can trigger CI/CD pipeline
+      return user.role === 'event_lead';
+
+    case 'manage_members':
+    case 'approve_member':
+    case 'delete_member':
+    case 'add_score':
+      // STRICT: Only Admin (Chủ nhiệm CLB) has authority over member roster, scores, and dismissals
+      return false;
+
     default:
       return false;
   }

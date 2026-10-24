@@ -13,12 +13,16 @@ import {
   CheckSquare,
   Square,
   Search,
+  Lock,
+  ShieldCheck,
+  UserCheck,
 } from 'lucide-react';
-import { ClubEvent, ClubMember, Department, EventCategory } from '../types.ts';
+import { ClubEvent, ClubMember, Department, EventCategory, AuthUser } from '../types.ts';
 import {
   checkEventScheduleConflict,
   calculateAttendanceRate,
   formatDateTime,
+  canPerformAction,
 } from '../domain/clubLogic.ts';
 
 interface EventsTabProps {
@@ -26,6 +30,8 @@ interface EventsTabProps {
   members: ClubMember[];
   onAddEvent: (newEvent: Omit<ClubEvent, 'id'>) => void;
   onToggleAttendee: (eventId: string, memberId: string) => void;
+  currentUser?: AuthUser | null;
+  onRequireAuth?: () => void;
 }
 
 const DEPARTMENTS: Department[] = [
@@ -55,7 +61,18 @@ export const EventsTab: React.FC<EventsTabProps> = ({
   members,
   onAddEvent,
   onToggleAttendee,
+  currentUser,
+  onRequireAuth,
 }) => {
+  const canCreateEvent = canPerformAction(currentUser || null, 'create_event');
+  const canManageAttendance = canPerformAction(currentUser || null, 'manage_events');
+  const myMemberRecord = currentUser
+    ? members.find(
+        (m) =>
+          m.mssv.toUpperCase() === currentUser.mssv.toUpperCase() ||
+          m.email.toLowerCase() === currentUser.email.toLowerCase()
+      )
+    : null;
   const [selectedEventId, setSelectedEventId] = useState<string>(
     events[0]?.id || ''
   );
@@ -168,6 +185,54 @@ export const EventsTab: React.FC<EventsTabProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* RBAC ROLE BANNER */}
+      {canCreateEvent ? (
+        <div className="bg-emerald-50 border border-emerald-200/90 rounded-xl p-3 flex items-center justify-between text-xs text-emerald-900 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold">
+                Quyền hạn Sự kiện: {currentUser?.roleTitle || 'Ban Quản trị'} (Toàn quyền Lập kế hoạch & Điểm danh)
+              </span>
+              <p className="text-[11px] text-emerald-700 mt-0.5">
+                Bạn có quyền tạo sự kiện mới, xử lý kiểm tra trùng lịch phòng học và điểm danh toàn bộ hội viên.
+              </p>
+            </div>
+          </div>
+          <span className="hidden sm:inline-block px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 rounded-md border border-emerald-200">
+            Event Management: Active
+          </span>
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200/90 rounded-xl p-3 flex items-center justify-between text-xs text-amber-900 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold">
+                Chế độ Xem & Đăng ký Cá nhân ({currentUser ? `${currentUser.roleTitle} (${currentUser.fullName})` : 'Khách tham quan / Chưa đăng nhập'})
+              </span>
+              <p className="text-[11px] text-amber-800 mt-0.5">
+                {currentUser
+                  ? 'Bạn có thể xem lịch và tự đăng ký tham gia sự kiện. Quyền tạo sự kiện và điểm danh toàn thể thuộc về Ban Sự kiện & Chủ nhiệm.'
+                  : 'Bạn chưa đăng nhập. Vui lòng đăng nhập để đăng ký chỗ tham gia các sự kiện sắp tới.'}
+              </p>
+            </div>
+          </div>
+          {!currentUser && onRequireAuth && (
+            <button
+              onClick={onRequireAuth}
+              className="px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors shrink-0 shadow-xs"
+            >
+              Đăng nhập ngay
+            </button>
+          )}
+        </div>
+      )}
+
       {/* HEADER & NEW EVENT ACTION */}
       <div className="bg-white border border-slate-200/90 rounded-xl p-4.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -179,16 +244,33 @@ export const EventsTab: React.FC<EventsTabProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setShowAddModal(true);
-            setConflictError(null);
-          }}
-          className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-xs"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tạo Sự kiện Mới</span>
-        </button>
+        {canCreateEvent ? (
+          <button
+            onClick={() => {
+              setShowAddModal(true);
+              setConflictError(null);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tạo Sự kiện Mới</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              if (!currentUser && onRequireAuth) {
+                onRequireAuth();
+              } else {
+                alert('Từ chối phân quyền (403): Chỉ Trưởng ban Sự kiện hoặc Chủ nhiệm CLB mới có quyền tạo sự kiện mới!');
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg transition-colors border border-slate-200"
+            title="Chỉ Trưởng ban Sự kiện hoặc Chủ nhiệm có quyền tạo sự kiện"
+          >
+            <Lock className="w-3.5 h-3.5 text-slate-400" />
+            <span>Tạo Sự kiện (Khóa)</span>
+          </button>
+        )}
       </div>
 
       {/* 2 PANELS: EVENT LIST (LEFT) & DETAIL / ATTENDANCE SHEET (RIGHT) */}
@@ -378,6 +460,70 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                   </div>
                 </div>
 
+                {/* SELF-REGISTRATION BAR FOR INDIVIDUAL USERS */}
+                {currentUser ? (
+                  <div className="mb-3 p-3 bg-slate-50 border border-slate-200/90 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <UserCheck className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Trạng thái Tham gia Cá nhân của Bạn:</span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
+                        {currentUser.fullName} · MSSV: {currentUser.mssv}
+                      </div>
+                    </div>
+                    {(() => {
+                      const targetId = myMemberRecord?.id || currentUser.id;
+                      const isMySelfRegistered = activeEvent.attendees.includes(targetId);
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => onToggleAttendee(activeEvent.id, targetId)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs shrink-0 ${
+                            isMySelfRegistered
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                              : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                          }`}
+                        >
+                          {isMySelfRegistered ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>✓ Bạn đã đăng ký (Bấm để hủy)</span>
+                            </>
+                          ) : (
+                            <>
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>Đăng ký tham gia sự kiện</span>
+                            </>
+                          )}
+                        </button>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <div className="mb-3 p-3 bg-amber-50 border border-amber-200/90 rounded-xl flex items-center justify-between gap-2">
+                    <div className="text-xs text-amber-900">
+                      <strong>Đăng ký cá nhân:</strong> Vui lòng đăng nhập để đăng ký chỗ tham dự sự kiện này.
+                    </div>
+                    {onRequireAuth && (
+                      <button
+                        type="button"
+                        onClick={onRequireAuth}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-lg transition-colors shrink-0 shadow-xs"
+                      >
+                        Đăng nhập ngay
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {!canManageAttendance && (
+                  <div className="mb-2 px-2 text-[11px] text-slate-400 italic flex items-center gap-1">
+                    <Lock className="w-3 h-3 text-slate-400" />
+                    <span>Danh sách điểm danh tập thể bên dưới chỉ dành cho Ban Tổ chức sự kiện ghi nhận.</span>
+                  </div>
+                )}
+
                 {/* Member Check-in List */}
                 <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 max-h-80 overflow-y-auto">
                   {filteredMembersForCheckin.map((member) => {
@@ -386,10 +532,16 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                     return (
                       <div
                         key={member.id}
-                        onClick={() => onToggleAttendee(activeEvent.id, member.id)}
-                        className={`px-3 py-2.5 flex items-center justify-between text-xs cursor-pointer transition-colors ${
-                          isChecked ? 'bg-indigo-50/40' : 'hover:bg-slate-50'
-                        }`}
+                        onClick={() => {
+                          if (canManageAttendance) {
+                            onToggleAttendee(activeEvent.id, member.id);
+                          } else {
+                            alert('Từ chối thao tác (403): Chỉ Ban Tổ chức (Trưởng ban Sự kiện hoặc Chủ nhiệm) mới có quyền điểm danh các thành viên khác!');
+                          }
+                        }}
+                        className={`px-3 py-2.5 flex items-center justify-between text-xs transition-colors ${
+                          canManageAttendance ? 'cursor-pointer hover:bg-slate-50' : 'cursor-default'
+                        } ${isChecked ? 'bg-indigo-50/40' : ''}`}
                       >
                         <div className="flex items-center gap-2.5">
                           <button

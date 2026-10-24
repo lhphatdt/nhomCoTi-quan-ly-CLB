@@ -13,12 +13,16 @@ import {
   Mail,
   Building,
   Check,
+  Lock,
+  ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
-import { ClubMember, Department, MemberStatus } from '../types.ts';
+import { ClubMember, Department, MemberStatus, AuthUser } from '../types.ts';
 import {
   validateStudentMember,
   classifyMemberActivity,
   formatDateTime,
+  canPerformAction,
 } from '../domain/clubLogic.ts';
 
 interface MembersTabProps {
@@ -27,6 +31,8 @@ interface MembersTabProps {
   onApproveMember: (id: string) => void;
   onAddScore: (id: string, points: number) => void;
   onDeleteMember: (id: string) => void;
+  currentUser?: AuthUser | null;
+  onRequireAuth?: () => void;
 }
 
 const DEPARTMENTS: Department[] = [
@@ -59,7 +65,10 @@ export const MembersTab: React.FC<MembersTabProps> = ({
   onApproveMember,
   onAddScore,
   onDeleteMember,
+  currentUser,
+  onRequireAuth,
 }) => {
+  const canManageMembers = canPerformAction(currentUser || null, 'manage_members');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -178,6 +187,52 @@ export const MembersTab: React.FC<MembersTabProps> = ({
 
   return (
     <div className="space-y-5">
+      {/* RBAC PERMISSION BANNER */}
+      {canManageMembers ? (
+        <div className="bg-emerald-50 border border-emerald-200/90 rounded-xl p-3 flex items-center justify-between text-xs text-emerald-900 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold">Quyền hạn Quản trị: Chủ nhiệm CLB (Admin Toàn quyền)</span>
+              <p className="text-[11px] text-emerald-700 mt-0.5">
+                Bạn có toàn quyền Tiếp nhận hồ sơ, Phê duyệt ứng viên, Cộng điểm rèn luyện và Buộc thôi sinh hoạt.
+              </p>
+            </div>
+          </div>
+          <span className="hidden sm:inline-block px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 rounded-md border border-emerald-200">
+            RBAC: Full Access
+          </span>
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200/90 rounded-xl p-3 flex items-center justify-between text-xs text-amber-900 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold">
+                Chế độ Xem Danh bạ ({currentUser ? `${currentUser.roleTitle} (${currentUser.fullName})` : 'Khách tham quan / Chưa đăng nhập'})
+              </span>
+              <p className="text-[11px] text-amber-800 mt-0.5">
+                {currentUser
+                  ? 'Theo ma trận phân quyền, chỉ Ban Chủ nhiệm (Admin) mới có quyền can thiệp nhân sự, duyệt đơn và sửa điểm.'
+                  : 'Bạn chưa đăng nhập. Vui lòng đăng nhập với quyền Chủ nhiệm để thao tác thêm/xóa/sửa nhân sự.'}
+              </p>
+            </div>
+          </div>
+          {!currentUser && onRequireAuth && (
+            <button
+              onClick={onRequireAuth}
+              className="px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors shrink-0 shadow-xs"
+            >
+              Đăng nhập ngay
+            </button>
+          )}
+        </div>
+      )}
+
       {/* TOP CONTROLS & FILTER BAR */}
       <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -224,17 +279,34 @@ export const MembersTab: React.FC<MembersTabProps> = ({
 
         {/* PRIMARY ACTION */}
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => {
-              setShowAddModal(true);
-              setSubmitFeedback(null);
-              setFormErrors({});
-            }}
-            className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-xs"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>Tiếp nhận Hồ sơ Mới</span>
-          </button>
+          {canManageMembers ? (
+            <button
+              onClick={() => {
+                setShowAddModal(true);
+                setSubmitFeedback(null);
+                setFormErrors({});
+              }}
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-xs"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Tiếp nhận Hồ sơ Mới</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (!currentUser && onRequireAuth) {
+                  onRequireAuth();
+                } else {
+                  alert('Từ chối phân quyền (403): Chỉ Chủ nhiệm CLB (Admin) mới có quyền tiếp nhận hồ sơ nhân sự!');
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg transition-colors border border-slate-200"
+              title="Chỉ Chủ nhiệm có quyền tiếp nhận nhân sự"
+            >
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+              <span>Thêm hồ sơ (Khóa)</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -365,44 +437,51 @@ export const MembersTab: React.FC<MembersTabProps> = ({
 
                       {/* Actions */}
                       <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Approve Pending */}
-                          {!isOfficial && (
+                        {canManageMembers ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Approve Pending */}
+                            {!isOfficial && (
+                              <button
+                                onClick={() => onApproveMember(member.id)}
+                                title="Duyệt ứng viên thành thành viên chính thức"
+                                className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-md transition-colors"
+                              >
+                                Duyệt
+                              </button>
+                            )}
+
+                            {/* +5 Score */}
                             <button
-                              onClick={() => onApproveMember(member.id)}
-                              title="Duyệt ứng viên thành thành viên chính thức"
-                              className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-md transition-colors"
+                              onClick={() => onAddScore(member.id, 5)}
+                              title="Cộng 5 điểm cống hiến phong trào"
+                              className="px-2 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors font-mono"
                             >
-                              Duyệt
+                              +5đ
                             </button>
-                          )}
 
-                          {/* +5 Score */}
-                          <button
-                            onClick={() => onAddScore(member.id, 5)}
-                            title="Cộng 5 điểm cống hiến phong trào"
-                            className="px-2 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors font-mono"
-                          >
-                            +5đ
-                          </button>
-
-                          {/* Delete */}
-                          <button
-                            onClick={() => {
-                              if (
-                                confirm(
-                                  `Bạn có chắc chắn muốn xóa hồ sơ sinh viên ${member.fullName} (${member.mssv}) khỏi danh sách CLB?`
-                                )
-                              ) {
-                                onDeleteMember(member.id);
-                              }
-                            }}
-                            title="Xóa hồ sơ nhân sự"
-                            className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors rounded hover:bg-rose-50"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                            {/* Delete */}
+                            <button
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    `Bạn có chắc chắn muốn xóa hồ sơ sinh viên ${member.fullName} (${member.mssv}) khỏi danh sách CLB?`
+                                  )
+                                ) {
+                                  onDeleteMember(member.id);
+                                }
+                              }}
+                              title="Xóa hồ sơ nhân sự"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors rounded hover:bg-rose-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium italic">
+                            <Lock className="w-3 h-3 text-slate-400" />
+                            Chỉ xem
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );

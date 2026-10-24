@@ -20,14 +20,18 @@ import {
   ShieldAlert,
   ChevronRight,
   ExternalLink,
+  Lock,
+  ShieldCheck,
 } from 'lucide-react';
-import { PipelineStage, UnitTestCaseResult } from '../types.ts';
-import { runBrowserUnitTests } from '../domain/clubLogic.ts';
+import { PipelineStage, UnitTestCaseResult, AuthUser } from '../types.ts';
+import { runBrowserUnitTests, canPerformAction } from '../domain/clubLogic.ts';
 
 interface CicdPipelineTabProps {
   simulateBug: boolean;
   onToggleSimulateBug: (enableBug: boolean) => void;
   onPipelineRunComplete: (passed: boolean) => void;
+  currentUser?: AuthUser | null;
+  onRequireAuth?: () => void;
 }
 
 const GITHUB_WORKFLOW_YAML = `name: UniClub Hub - Enterprise CI/CD Pipeline
@@ -165,7 +169,10 @@ export const CicdPipelineTab: React.FC<CicdPipelineTabProps> = ({
   simulateBug,
   onToggleSimulateBug,
   onPipelineRunComplete,
+  currentUser,
+  onRequireAuth,
 }) => {
+  const canRunCicd = canPerformAction(currentUser || null, 'run_cicd');
   const [isRunning, setIsRunning] = useState(false);
   const [activeStageIndex, setActiveStageIndex] = useState<number>(-1);
   const [copiedYaml, setCopiedYaml] = useState(false);
@@ -416,6 +423,54 @@ export const CicdPipelineTab: React.FC<CicdPipelineTabProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* RBAC PERMISSION BANNER */}
+      {canRunCicd ? (
+        <div className="bg-emerald-50 border border-emerald-200/90 rounded-xl p-3 flex items-center justify-between text-xs text-emerald-900 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold">
+                Quyền hạn DevOps & Kỹ thuật: {currentUser?.roleTitle || 'Ban Quản trị'} (Toàn quyền Trigger & Thử nghiệm Bug)
+              </span>
+              <p className="text-[11px] text-emerald-700 mt-0.5">
+                Bạn có quyền điều phối pipeline, giả lập lỗi branch protection và xác thực bộ 12 test case trong trình duyệt.
+              </p>
+            </div>
+          </div>
+          <span className="hidden sm:inline-block px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 rounded-md border border-emerald-200">
+            DevOps: Full Access
+          </span>
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200/90 rounded-xl p-3 flex items-center justify-between text-xs text-amber-900 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold">
+                Chế độ Quan sát CI/CD ({currentUser ? `${currentUser.roleTitle} (${currentUser.fullName})` : 'Khách tham quan / Chưa đăng nhập'})
+              </span>
+              <p className="text-[11px] text-amber-800 mt-0.5">
+                {currentUser
+                  ? 'Bạn đang ở chế độ xem log và kết quả kiểm thử. Chỉ Ban Chuyên môn và Chủ nhiệm mới có thẩm quyền kích hoạt pipeline.'
+                  : 'Bạn chưa đăng nhập. Vui lòng đăng nhập với tài khoản Admin hoặc Kỹ thuật để thực thi pipeline.'}
+              </p>
+            </div>
+          </div>
+          {!currentUser && onRequireAuth && (
+            <button
+              onClick={onRequireAuth}
+              className="px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors shrink-0 shadow-xs"
+            >
+              Đăng nhập ngay
+            </button>
+          )}
+        </div>
+      )}
+
       {/* CONTROL HERO: BUG INJECTION TOGGLE & TRIGGER BUTTON */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
@@ -435,65 +490,84 @@ export const CicdPipelineTab: React.FC<CicdPipelineTabProps> = ({
           {/* SIMULATE BUG TOGGLE & RUN BUTTON */}
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             {/* BUG INJECTION TOGGLE */}
-            <div
-              onClick={() => onToggleSimulateBug(!simulateBug)}
-              className={`flex items-center gap-3 px-3.5 py-2 border rounded-xl cursor-pointer transition-all ${
-                simulateBug
-                  ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-xs'
-                  : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-              }`}
-              title="Bật/Tắt chế độ thử nghiệm Quality Gate (Branch Protection)"
-            >
-              <div className="text-xs">
-                {simulateBug ? (
-                  <span className="text-rose-700 font-extrabold flex items-center gap-1.5">
-                    <Flame className="w-4 h-4 text-rose-600 animate-pulse" />
-                    <span>Giả lập Bug Quỹ CLB (Chặn CI)</span>
-                  </span>
-                ) : (
-                  <span className="text-emerald-700 font-bold flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>Chế độ Code Sạch (Pass 100%)</span>
-                  </span>
-                )}
-              </div>
-
-              {/* Toggle switch visual */}
+            {canRunCicd ? (
               <div
-                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ease-in-out ${
-                  simulateBug ? 'bg-rose-600' : 'bg-slate-300'
+                onClick={() => onToggleSimulateBug(!simulateBug)}
+                className={`flex items-center gap-3 px-3.5 py-2 border rounded-xl cursor-pointer transition-all ${
+                  simulateBug
+                    ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-xs'
+                    : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                 }`}
+                title="Bật/Tắt chế độ thử nghiệm Quality Gate (Branch Protection)"
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out mt-0.5 ml-0.5 ${
-                    simulateBug ? 'translate-x-4' : 'translate-x-0'
+                <div className="text-xs">
+                  {simulateBug ? (
+                    <span className="text-rose-700 font-extrabold flex items-center gap-1.5">
+                      <Flame className="w-4 h-4 text-rose-600 animate-pulse" />
+                      <span>Giả lập Bug Quỹ CLB (Chặn CI)</span>
+                    </span>
+                  ) : (
+                    <span className="text-emerald-700 font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>Chế độ Code Sạch (Pass 100%)</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Toggle switch visual */}
+                <div
+                  className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ease-in-out ${
+                    simulateBug ? 'bg-rose-600' : 'bg-slate-300'
                   }`}
-                />
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out mt-0.5 ml-0.5 ${
+                      simulateBug ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </div>
               </div>
-            </div>
+            ) : null}
 
             {/* TRIGGER BUTTON */}
-            <button
-              onClick={handleTriggerPipeline}
-              disabled={isRunning}
-              className={`flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white rounded-xl transition-all shadow-sm ${
-                isRunning
-                  ? 'bg-slate-400 cursor-not-allowed'
-                  : 'bg-indigo-600 hover:bg-indigo-500 cursor-pointer shadow-indigo-200 hover:shadow-md'
-              }`}
-            >
-              {isRunning ? (
-                <>
-                  <RotateCcw className="w-4 h-4 animate-spin" />
-                  <span>Đang thực thi Pipeline...</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 fill-current" />
-                  <span>Kích hoạt Pipeline Mới</span>
-                </>
-              )}
-            </button>
+            {canRunCicd ? (
+              <button
+                onClick={handleTriggerPipeline}
+                disabled={isRunning}
+                className={`flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white rounded-xl transition-all shadow-sm ${
+                  isRunning
+                    ? 'bg-slate-400 cursor-not-allowed'
+                    : 'bg-indigo-600 hover:bg-indigo-500 cursor-pointer shadow-indigo-200 hover:shadow-md'
+                }`}
+              >
+                {isRunning ? (
+                  <>
+                    <RotateCcw className="w-4 h-4 animate-spin" />
+                    <span>Đang thực thi Pipeline...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Kích hoạt Pipeline Mới</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  if (!currentUser && onRequireAuth) {
+                    onRequireAuth();
+                  } else {
+                    alert('Từ chối phân quyền (403): Chỉ Ban Chuyên môn hoặc Chủ nhiệm CLB mới có thẩm quyền kích hoạt pipeline!');
+                  }
+                }}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl transition-colors border border-slate-200"
+                title="Chỉ Ban Chuyên môn hoặc Chủ nhiệm có quyền kích hoạt"
+              >
+                <Lock className="w-4 h-4 text-slate-400" />
+                <span>Kích hoạt Pipeline (Khóa)</span>
+              </button>
+            )}
 
             {/* VIEW YAML WORKFLOW CODE */}
             <button

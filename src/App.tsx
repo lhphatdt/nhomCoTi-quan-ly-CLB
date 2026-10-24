@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   UserPlus,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 import { ClubMember, ClubEvent, TreasuryTransaction, AuthUser, UserRole } from './types.ts';
 import {
@@ -61,9 +62,9 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
-      return saved ? JSON.parse(saved) : INITIAL_AUTH_USERS[0];
+      return saved ? JSON.parse(saved) : null;
     } catch {
-      return INITIAL_AUTH_USERS[0];
+      return null;
     }
   });
 
@@ -258,23 +259,21 @@ export default function App() {
     setMembers((prev) => [newMember, ...prev]);
   };
 
-  const handleSwitchRole = (targetRole: UserRole) => {
+  const handleSwitchRole = (targetRole: UserRole | 'guest') => {
+    if (targetRole === 'guest') {
+      setCurrentUser(null);
+      localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
+      setShowUserDropdown(false);
+      return;
+    }
     const existing = authUsers.find((u) => u.role === targetRole);
     if (existing) {
       setCurrentUser(existing);
-    } else if (currentUser) {
-      const titles: Record<UserRole, string> = {
-        admin: 'Chủ nhiệm CLB',
-        treasurer: 'Phó Chủ nhiệm kiêm Thủ quỹ',
-        event_lead: 'Trưởng ban Sự kiện',
-        member: 'Thành viên CLB',
-        guest: 'Khách tham quan',
-      };
-      setCurrentUser({
-        ...currentUser,
-        role: targetRole,
-        roleTitle: titles[targetRole],
-      });
+    } else {
+      const defaultUser = INITIAL_AUTH_USERS.find((u) => u.role === targetRole);
+      if (defaultUser) {
+        setCurrentUser(defaultUser);
+      }
     }
     setShowUserDropdown(false);
   };
@@ -584,6 +583,97 @@ export default function App() {
         </div>
       </header>
 
+      {/* RBAC ROLE DEMO & ACTIVE IDENTITY TESTING STRIP */}
+      <section className="bg-slate-900 text-slate-200 border-b border-slate-800 text-xs py-2 px-4 shadow-inner">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-white flex items-center gap-1.5 shrink-0">
+              <ShieldCheck className="w-4 h-4 text-indigo-400" />
+              <span>Chế độ Phân quyền (RBAC Testing):</span>
+            </span>
+            {currentUser ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{currentUser.fullName} ({currentUser.roleTitle})</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                <Lock className="w-3 h-3 text-amber-400" />
+                <span>Chưa đăng nhập (Khách chỉ xem - Read Only)</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] text-slate-400 font-medium hidden lg:inline mr-1">
+              Chuyển vai trò thử nghiệm nhanh:
+            </span>
+            <button
+              onClick={() => handleSwitchRole('admin')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                currentUser?.role === 'admin'
+                  ? 'bg-purple-600 text-white shadow-xs font-bold'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+              title="Vào vai Chủ nhiệm CLB (Toàn quyền quản trị)"
+            >
+              <span>👑 Chủ nhiệm</span>
+            </button>
+            <button
+              onClick={() => handleSwitchRole('treasurer')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                currentUser?.role === 'treasurer'
+                  ? 'bg-emerald-600 text-white shadow-xs font-bold'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+              title="Vào vai Phó Chủ nhiệm / Thủ quỹ (Duyệt chi)"
+            >
+              <span>💰 Thủ quỹ</span>
+            </button>
+            <button
+              onClick={() => handleSwitchRole('event_lead')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                currentUser?.role === 'event_lead'
+                  ? 'bg-amber-600 text-white shadow-xs font-bold'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+              title="Vào vai Trưởng ban Sự kiện (Tổ chức & Điểm danh)"
+            >
+              <span>🎪 Sự kiện</span>
+            </button>
+            <button
+              onClick={() => handleSwitchRole('member')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                currentUser?.role === 'member'
+                  ? 'bg-blue-600 text-white shadow-xs font-bold'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+              title="Vào vai Hội viên CLB (Chỉ xem & Tự đăng ký)"
+            >
+              <span>👤 Hội viên</span>
+            </button>
+            {currentUser ? (
+              <button
+                onClick={() => handleSwitchRole('guest')}
+                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 transition-colors flex items-center gap-1"
+                title="Đăng xuất về trạng thái Chưa đăng nhập"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>Thoát ra</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors flex items-center gap-1"
+              >
+                <LogIn className="w-3 h-3" />
+                <span>Đăng nhập</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* MAIN VIEWPORT */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'overview' && (
@@ -603,6 +693,8 @@ export default function App() {
             onApproveMember={handleApproveMember}
             onAddScore={handleAddScore}
             onDeleteMember={handleDeleteMember}
+            currentUser={currentUser}
+            onRequireAuth={() => setIsAuthModalOpen(true)}
           />
         )}
 
@@ -612,6 +704,8 @@ export default function App() {
             members={members}
             onAddEvent={handleAddEvent}
             onToggleAttendee={handleToggleAttendee}
+            currentUser={currentUser}
+            onRequireAuth={() => setIsAuthModalOpen(true)}
           />
         )}
 
@@ -621,6 +715,8 @@ export default function App() {
             onAddTransaction={handleAddTransaction}
             onApproveTransaction={handleApproveTransaction}
             onRejectTransaction={handleRejectTransaction}
+            currentUser={currentUser}
+            onRequireAuth={() => setIsAuthModalOpen(true)}
           />
         )}
 
@@ -629,6 +725,8 @@ export default function App() {
             simulateBug={simulateBug}
             onToggleSimulateBug={(bugState) => setSimulateBug(bugState)}
             onPipelineRunComplete={(passed) => setPipelinePassed(passed)}
+            currentUser={currentUser}
+            onRequireAuth={() => setIsAuthModalOpen(true)}
           />
         )}
       </main>
