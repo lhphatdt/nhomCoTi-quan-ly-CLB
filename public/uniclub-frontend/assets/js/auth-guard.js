@@ -33,15 +33,22 @@
   const path = window.location.pathname;
   const isInAdmin = path.includes('/admin/');
 
-  // 1. ADMIN ROUTE PROTECTION
-  if (isInAdmin) {
-    if (!session) {
-      // Unauthenticated: Immediately redirect to login
-      alert('Yêu cầu đăng nhập: Bạn cần đăng nhập tài khoản Quản trị để truy cập trang này.');
-      window.location.href = '../login.html?redirect=' + encodeURIComponent(path);
-      return;
-    }
+  // Whitelisted pages accessible without login
+  const isLoginPage = path.endsWith('login.html') || path.includes('/login.html');
+  const isRegisterPage = path.endsWith('register.html') || path.includes('/register.html');
+  const isForgotPassPage = path.endsWith('forgot-password.html') || path.includes('/forgot-password.html');
+  const isErrorPage = path.includes('403.html') || path.includes('404.html') || path.includes('500.html');
+  const isWhitelisted = isLoginPage || isRegisterPage || isForgotPassPage || isErrorPage;
 
+  // 1. MANDATORY AUTHENTICATION CHECK: Guests MUST log in to view any club content
+  if (!session && !isWhitelisted) {
+    const target = isInAdmin ? '../login.html' : 'login.html';
+    window.location.href = target + '?msg=required&redirect=' + encodeURIComponent(path);
+    return;
+  }
+
+  // 2. ADMIN ROUTE PROTECTION: Only Admin, Treasurer, and Event Lead can access admin
+  if (isInAdmin && session) {
     // Role check: Only ADMIN, TREASURER, EVENT_LEAD can enter admin
     if (session.role === 'MEMBER' || session.role === 'GUEST') {
       alert('Từ chối truy cập (403): Tài khoản của bạn là Hội viên, không có quyền quản trị viên!');

@@ -37,6 +37,7 @@ import { EventsTab } from './components/EventsTab.tsx';
 import { TreasuryTab } from './components/TreasuryTab.tsx';
 import { CicdPipelineTab } from './components/CicdPipelineTab.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
+import { AuthGateView } from './components/AuthGateView.tsx';
 
 type TabType = 'overview' | 'members' | 'events' | 'treasury' | 'cicd';
 
@@ -278,6 +279,14 @@ export default function App() {
     setShowUserDropdown(false);
   };
 
+  const handleTabClick = (tab: TabType) => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setActiveTab(tab);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans selection:bg-indigo-500 selection:text-white">
       {/* TOP BAR CONTRACT: Zone 1 (Brand), Zone 2 (5 Nav Links), Zone 3 (Actions) */}
@@ -286,7 +295,7 @@ export default function App() {
           {/* ZONE 1: SINGLE-ELEMENT BRAND WORDMARK */}
           <div className="flex items-center gap-3 shrink-0">
             <span
-              onClick={() => setActiveTab('overview')}
+              onClick={() => handleTabClick('overview')}
               className="text-base font-extrabold tracking-tight text-slate-900 cursor-pointer flex items-center gap-2.5 group"
             >
               <span className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-indigo-500 text-white flex items-center justify-center text-xs font-black shadow-xs group-hover:scale-105 transition-transform">
@@ -306,64 +315,70 @@ export default function App() {
           {/* ZONE 2: 5 CLEAN NAVIGATION LINKS */}
           <nav className="hidden md:flex items-center gap-1">
             <button
-              onClick={() => setActiveTab('overview')}
+              onClick={() => handleTabClick('overview')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
-                activeTab === 'overview'
+                activeTab === 'overview' && currentUser
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Tổng quan</span>
+              {!currentUser && <Lock className="w-3 h-3 text-slate-400 ml-0.5" />}
             </button>
 
             <button
-              onClick={() => setActiveTab('members')}
+              onClick={() => handleTabClick('members')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
-                activeTab === 'members'
+                activeTab === 'members' && currentUser
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <Users className="w-3.5 h-3.5" />
               <span>Nhân sự</span>
+              {!currentUser && <Lock className="w-3 h-3 text-slate-400 ml-0.5" />}
             </button>
 
             <button
-              onClick={() => setActiveTab('events')}
+              onClick={() => handleTabClick('events')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
-                activeTab === 'events'
+                activeTab === 'events' && currentUser
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>Lịch Sự kiện</span>
+              {!currentUser && <Lock className="w-3 h-3 text-slate-400 ml-0.5" />}
             </button>
 
             <button
-              onClick={() => setActiveTab('treasury')}
+              onClick={() => handleTabClick('treasury')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
-                activeTab === 'treasury'
+                activeTab === 'treasury' && currentUser
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <Wallet className="w-3.5 h-3.5" />
               <span>Sổ Quỹ</span>
+              {!currentUser && <Lock className="w-3 h-3 text-slate-400 ml-0.5" />}
             </button>
 
             <button
-              onClick={() => setActiveTab('cicd')}
+              onClick={() => handleTabClick('cicd')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap relative ${
-                activeTab === 'cicd'
+                activeTab === 'cicd' && currentUser
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100'
               }`}
             >
               <GitBranch className="w-3.5 h-3.5" />
               <span>Pipeline CI/CD</span>
-              {simulateBug ? (
+              {!currentUser ? (
+                <Lock className="w-3 h-3 text-indigo-400 ml-0.5" />
+              ) : simulateBug ? (
                 <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse ml-0.5" />
               ) : (
                 <span className="w-2 h-2 rounded-full bg-emerald-400 ml-0.5" />
@@ -375,7 +390,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             {/* Quick status pill for CI/CD */}
             <button
-              onClick={() => setActiveTab('cicd')}
+              onClick={() => handleTabClick('cicd')}
               className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-mono font-bold rounded-lg border transition-all ${
                 pipelinePassed
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
@@ -541,44 +556,49 @@ export default function App() {
         {/* MOBILE BOTTOM NAVIGATION STRIP */}
         <div className="flex md:hidden border-t border-slate-100 px-2 py-1 overflow-x-auto gap-1">
           <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-2.5 py-1 text-xs whitespace-nowrap rounded ${
-              activeTab === 'overview' ? 'bg-slate-200 font-semibold' : 'text-slate-600'
+            onClick={() => handleTabClick('overview')}
+            className={`px-2.5 py-1 text-xs whitespace-nowrap rounded flex items-center gap-1 ${
+              activeTab === 'overview' && currentUser ? 'bg-slate-200 font-semibold' : 'text-slate-600'
             }`}
           >
-            Tổng quan
+            <span>Tổng quan</span>
+            {!currentUser && <Lock className="w-3 h-3 text-slate-400" />}
           </button>
           <button
-            onClick={() => setActiveTab('members')}
-            className={`px-2.5 py-1 text-xs whitespace-nowrap rounded ${
-              activeTab === 'members' ? 'bg-slate-200 font-semibold' : 'text-slate-600'
+            onClick={() => handleTabClick('members')}
+            className={`px-2.5 py-1 text-xs whitespace-nowrap rounded flex items-center gap-1 ${
+              activeTab === 'members' && currentUser ? 'bg-slate-200 font-semibold' : 'text-slate-600'
             }`}
           >
-            Nhân sự ({members.length})
+            <span>Nhân sự ({members.length})</span>
+            {!currentUser && <Lock className="w-3 h-3 text-slate-400" />}
           </button>
           <button
-            onClick={() => setActiveTab('events')}
-            className={`px-2.5 py-1 text-xs whitespace-nowrap rounded ${
-              activeTab === 'events' ? 'bg-slate-200 font-semibold' : 'text-slate-600'
+            onClick={() => handleTabClick('events')}
+            className={`px-2.5 py-1 text-xs whitespace-nowrap rounded flex items-center gap-1 ${
+              activeTab === 'events' && currentUser ? 'bg-slate-200 font-semibold' : 'text-slate-600'
             }`}
           >
-            Sự kiện ({events.length})
+            <span>Sự kiện ({events.length})</span>
+            {!currentUser && <Lock className="w-3 h-3 text-slate-400" />}
           </button>
           <button
-            onClick={() => setActiveTab('treasury')}
-            className={`px-2.5 py-1 text-xs whitespace-nowrap rounded ${
-              activeTab === 'treasury' ? 'bg-slate-200 font-semibold' : 'text-slate-600'
+            onClick={() => handleTabClick('treasury')}
+            className={`px-2.5 py-1 text-xs whitespace-nowrap rounded flex items-center gap-1 ${
+              activeTab === 'treasury' && currentUser ? 'bg-slate-200 font-semibold' : 'text-slate-600'
             }`}
           >
-            Sổ Quỹ
+            <span>Sổ Quỹ</span>
+            {!currentUser && <Lock className="w-3 h-3 text-slate-400" />}
           </button>
           <button
-            onClick={() => setActiveTab('cicd')}
-            className={`px-2.5 py-1 text-xs whitespace-nowrap rounded font-bold ${
-              activeTab === 'cicd' ? 'bg-indigo-600 text-white' : 'text-indigo-600'
+            onClick={() => handleTabClick('cicd')}
+            className={`px-2.5 py-1 text-xs whitespace-nowrap rounded font-bold flex items-center gap-1 ${
+              activeTab === 'cicd' && currentUser ? 'bg-indigo-600 text-white' : 'text-indigo-600'
             }`}
           >
-            CI/CD Pipeline
+            <span>CI/CD Pipeline</span>
+            {!currentUser && <Lock className="w-3 h-3 text-indigo-400" />}
           </button>
         </div>
       </header>
@@ -597,9 +617,9 @@ export default function App() {
                 <span>{currentUser.fullName} ({currentUser.roleTitle})</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                <Lock className="w-3 h-3 text-amber-400" />
-                <span>Chưa đăng nhập (Khách chỉ xem - Read Only)</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                <Lock className="w-3 h-3 text-rose-400" />
+                <span>Chưa đăng nhập (Khách bắt buộc đăng nhập để xem thông tin)</span>
               </span>
             )}
           </div>
@@ -656,7 +676,7 @@ export default function App() {
               <button
                 onClick={() => handleSwitchRole('guest')}
                 className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 transition-colors flex items-center gap-1"
-                title="Đăng xuất về trạng thái Chưa đăng nhập"
+                title="Đăng xuất về trạng thái Chưa đăng nhập (Khóa xem dữ liệu)"
               >
                 <LogOut className="w-3 h-3" />
                 <span>Thoát ra</span>
@@ -676,58 +696,71 @@ export default function App() {
 
       {/* MAIN VIEWPORT */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeTab === 'overview' && (
-          <OverviewTab
-            members={members}
-            events={events}
-            transactions={transactions}
-            pipelinePassed={pipelinePassed}
-            onNavigateTab={(tab) => setActiveTab(tab)}
+        {!currentUser ? (
+          <AuthGateView
+            authUsers={authUsers}
+            onLoginSuccess={(user) => {
+              setCurrentUser(user);
+              setIsAuthModalOpen(false);
+            }}
+            onRegisterNewUser={handleRegisterNewUser}
           />
-        )}
+        ) : (
+          <>
+            {activeTab === 'overview' && (
+              <OverviewTab
+                members={members}
+                events={events}
+                transactions={transactions}
+                pipelinePassed={pipelinePassed}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+              />
+            )}
 
-        {activeTab === 'members' && (
-          <MembersTab
-            members={members}
-            onAddMember={handleAddMember}
-            onApproveMember={handleApproveMember}
-            onAddScore={handleAddScore}
-            onDeleteMember={handleDeleteMember}
-            currentUser={currentUser}
-            onRequireAuth={() => setIsAuthModalOpen(true)}
-          />
-        )}
+            {activeTab === 'members' && (
+              <MembersTab
+                members={members}
+                onAddMember={handleAddMember}
+                onApproveMember={handleApproveMember}
+                onAddScore={handleAddScore}
+                onDeleteMember={handleDeleteMember}
+                currentUser={currentUser}
+                onRequireAuth={() => setIsAuthModalOpen(true)}
+              />
+            )}
 
-        {activeTab === 'events' && (
-          <EventsTab
-            events={events}
-            members={members}
-            onAddEvent={handleAddEvent}
-            onToggleAttendee={handleToggleAttendee}
-            currentUser={currentUser}
-            onRequireAuth={() => setIsAuthModalOpen(true)}
-          />
-        )}
+            {activeTab === 'events' && (
+              <EventsTab
+                events={events}
+                members={members}
+                onAddEvent={handleAddEvent}
+                onToggleAttendee={handleToggleAttendee}
+                currentUser={currentUser}
+                onRequireAuth={() => setIsAuthModalOpen(true)}
+              />
+            )}
 
-        {activeTab === 'treasury' && (
-          <TreasuryTab
-            transactions={transactions}
-            onAddTransaction={handleAddTransaction}
-            onApproveTransaction={handleApproveTransaction}
-            onRejectTransaction={handleRejectTransaction}
-            currentUser={currentUser}
-            onRequireAuth={() => setIsAuthModalOpen(true)}
-          />
-        )}
+            {activeTab === 'treasury' && (
+              <TreasuryTab
+                transactions={transactions}
+                onAddTransaction={handleAddTransaction}
+                onApproveTransaction={handleApproveTransaction}
+                onRejectTransaction={handleRejectTransaction}
+                currentUser={currentUser}
+                onRequireAuth={() => setIsAuthModalOpen(true)}
+              />
+            )}
 
-        {activeTab === 'cicd' && (
-          <CicdPipelineTab
-            simulateBug={simulateBug}
-            onToggleSimulateBug={(bugState) => setSimulateBug(bugState)}
-            onPipelineRunComplete={(passed) => setPipelinePassed(passed)}
-            currentUser={currentUser}
-            onRequireAuth={() => setIsAuthModalOpen(true)}
-          />
+            {activeTab === 'cicd' && (
+              <CicdPipelineTab
+                simulateBug={simulateBug}
+                onToggleSimulateBug={(bugState) => setSimulateBug(bugState)}
+                onPipelineRunComplete={(passed) => setPipelinePassed(passed)}
+                currentUser={currentUser}
+                onRequireAuth={() => setIsAuthModalOpen(true)}
+              />
+            )}
+          </>
         )}
       </main>
 
@@ -752,14 +785,18 @@ export default function App() {
       {/* Authentication & Registration Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+        onClose={() => {
+          if (currentUser) {
+            setIsAuthModalOpen(false);
+          }
+        }}
         onLoginSuccess={(user) => {
           setCurrentUser(user);
           setIsAuthModalOpen(false);
         }}
         authUsers={authUsers}
         onRegisterNewUser={handleRegisterNewUser}
-        isMandatory={false}
+        isMandatory={!currentUser}
       />
     </div>
   );

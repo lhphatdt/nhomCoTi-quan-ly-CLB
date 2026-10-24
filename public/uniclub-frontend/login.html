@@ -23,13 +23,24 @@
           <p class="text-muted small">Cổng thông tin & Quản trị Câu lạc bộ Sinh viên</p>
         </div>
 
+        <!-- Mandatory Guest Authentication Notice (Shows if redirected) -->
+        <div id="requiredAuthNotice" class="alert alert-warning border-warning-subtle rounded-4 p-3 small mb-3" style="display: none;">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock-fill text-warning fs-4"></i>
+            <div>
+              <strong class="d-block text-dark">Yêu cầu đăng nhập bắt buộc:</strong>
+              Khách bắt buộc phải đăng nhập mới được xem thông tin câu lạc bộ, danh sách nhân sự, sự kiện và tài chính.
+            </div>
+          </div>
+        </div>
+
         <!-- Single Active Session Info Notice -->
         <div class="alert alert-primary border-primary-subtle rounded-4 p-3 small mb-4">
           <div class="d-flex align-items-start gap-2">
             <i class="bi bi-shield-check text-primary fs-5 mt-1"></i>
             <div>
-              <strong class="d-block mb-1">Cơ chế Bảo mật Single Active Admin Session:</strong>
-              Hệ thống chỉ duy trì 01 máy giữ vai trò <em>Admin Chính</em>. Nếu đăng nhập máy mới, tài khoản sẽ ở trạng thái <code>PENDING</code> chờ máy chính phê duyệt hoặc tự động chấp nhận nếu là <em>Trusted Device</em>.
+              <strong class="d-block mb-1">Cơ chế Bảo mật Phân quyền RBAC & Single Session:</strong>
+              Hệ thống yêu cầu xác thực tài khoản. Giảng viên và Hội đồng có thể sử dụng các nút <em>1-Click Đăng nhập nhanh</em> bên dưới để kiểm thử quyền hạn 4 vai trò.
             </div>
           </div>
         </div>
@@ -69,12 +80,6 @@
                   Ghi nhớ đăng nhập (Remember Me token 30 ngày)
                 </label>
               </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="trustedDeviceCheck" checked>
-                <label class="form-check-label small text-muted" for="trustedDeviceCheck">
-                  Yêu cầu cấp quyền Thiết bị tin cậy (Trusted Device)
-                </label>
-              </div>
             </div>
 
             <button type="submit" class="btn btn-primary w-100 py-2.5 rounded-pill fw-bold shadow-sm mb-3">
@@ -82,23 +87,39 @@
             </button>
           </form>
 
-          <!-- Quick Test Access for Examiners -->
+          <!-- Quick Test Access for Examiners (4 Roles) -->
           <div class="border-top pt-3 mt-2">
-            <small class="text-muted fw-bold d-block mb-2">Đăng nhập nhanh dành cho Hội đồng chấm đồ án:</small>
-            <div class="d-grid gap-2">
-              <button type="button" id="btnQuickLoginAdmin" class="btn btn-sm btn-outline-dark rounded-pill text-start px-3 py-2">
-                <span class="fw-bold d-block text-primary"><i class="bi bi-shield-shaded me-1"></i> 1-Click: Vào vai Ban Chủ nhiệm (Admin)</span>
-                <span class="small text-muted" style="font-size: 0.75rem;">admin@uniclub.vn · Toàn quyền quản trị & Sessions</span>
-              </button>
-              <button type="button" id="btnQuickLoginMember" class="btn btn-sm btn-outline-secondary rounded-pill text-start px-3 py-2">
-                <span class="fw-bold d-block text-success"><i class="bi bi-person-check me-1"></i> 1-Click: Vào vai Hội viên (Sinh viên)</span>
-                <span class="small text-muted" style="font-size: 0.75rem;">hoivien@gmail.com · Chỉ xem danh bạ & Điểm danh QR</span>
-              </button>
+            <small class="text-muted fw-bold d-block mb-2">Đăng nhập nhanh 1-Click (Hội đồng chấm đồ án & Thử nghiệm RBAC):</small>
+            <div class="row g-2">
+              <div class="col-6">
+                <button type="button" id="btnQuickLoginAdmin" class="btn btn-sm btn-outline-dark rounded-3 text-start p-2 w-100 h-100">
+                  <span class="fw-bold d-block text-primary small">👑 1. Chủ nhiệm</span>
+                  <span class="text-muted" style="font-size: 0.7rem;">Toàn quyền Admin</span>
+                </button>
+              </div>
+              <div class="col-6">
+                <button type="button" id="btnQuickLoginTreasurer" class="btn btn-sm btn-outline-success rounded-3 text-start p-2 w-100 h-100">
+                  <span class="fw-bold d-block text-success small">💰 2. Thủ quỹ</span>
+                  <span class="text-muted" style="font-size: 0.7rem;">Duyệt chi sổ quỹ</span>
+                </button>
+              </div>
+              <div class="col-6">
+                <button type="button" id="btnQuickLoginEventLead" class="btn btn-sm btn-outline-warning rounded-3 text-start p-2 w-100 h-100">
+                  <span class="fw-bold d-block text-warning-emphasis small">🎪 3. Ban Sự kiện</span>
+                  <span class="text-muted" style="font-size: 0.7rem;">Tạo & Điểm danh</span>
+                </button>
+              </div>
+              <div class="col-6">
+                <button type="button" id="btnQuickLoginMember" class="btn btn-sm btn-outline-primary rounded-3 text-start p-2 w-100 h-100">
+                  <span class="fw-bold d-block text-info small">👤 4. Hội viên</span>
+                  <span class="text-muted" style="font-size: 0.7rem;">Xem & Tự đăng ký</span>
+                </button>
+              </div>
             </div>
             <div id="sessionStatusArea" class="mt-2 text-center" style="display: none;">
               <span class="badge bg-secondary-subtle text-dark border p-2 w-100">
                 <span id="activeUserNotice"></span>
-                <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none p-0 ms-2 fw-bold" onclick="window.logoutUniClub(); location.reload();">Đăng xuất ngay</button>
+                <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none p-0 ms-2 fw-bold" onclick="window.logoutUniClub(); location.reload();">Đăng xuất</button>
               </span>
             </div>
           </div>
@@ -125,6 +146,12 @@
   <script src="assets/js/validation.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('msg') === 'required') {
+        const notice = document.getElementById('requiredAuthNotice');
+        if (notice) notice.style.display = 'block';
+      }
+
       const session = window.getUniClubSession ? window.getUniClubSession() : null;
       if (session) {
         const area = document.getElementById('sessionStatusArea');
@@ -151,7 +178,6 @@
             });
             showToast('Đăng nhập thành công với vai trò Ban Chủ nhiệm!', 'success');
             setTimeout(() => {
-              const urlParams = new URLSearchParams(window.location.search);
               const redirect = urlParams.get('redirect') || 'admin/dashboard.html';
               window.location.href = redirect;
             }, 500);
@@ -163,7 +189,8 @@
             });
             showToast('Đăng nhập thành công với vai trò Hội viên!', 'success');
             setTimeout(() => {
-              window.location.href = 'index.html';
+              const redirect = urlParams.get('redirect') || 'index.html';
+              window.location.href = redirect;
             }, 500);
           }
         });
@@ -178,7 +205,36 @@
         });
         showToast('Đã cấp quyền Ban Chủ nhiệm (Admin)!', 'success');
         setTimeout(() => {
-          window.location.href = 'admin/dashboard.html';
+          const redirect = urlParams.get('redirect') || 'admin/dashboard.html';
+          window.location.href = redirect;
+        }, 300);
+      });
+
+      // 1-Click Treasurer
+      document.getElementById('btnQuickLoginTreasurer')?.addEventListener('click', function() {
+        window.setUniClubSession({
+          role: 'TREASURER',
+          name: 'Lê Hoàng Nam (Thủ quỹ CLB)',
+          email: 'thuquy@uniclub.vn'
+        });
+        showToast('Đã cấp quyền Thủ quỹ (Duyệt chi)!', 'success');
+        setTimeout(() => {
+          const redirect = urlParams.get('redirect') || 'admin/dashboard.html';
+          window.location.href = redirect;
+        }, 300);
+      });
+
+      // 1-Click Event Lead
+      document.getElementById('btnQuickLoginEventLead')?.addEventListener('click', function() {
+        window.setUniClubSession({
+          role: 'EVENT_LEAD',
+          name: 'Phạm Minh Đức (Trưởng ban Sự kiện)',
+          email: 'sukien@uniclub.vn'
+        });
+        showToast('Đã cấp quyền Trưởng ban Sự kiện!', 'success');
+        setTimeout(() => {
+          const redirect = urlParams.get('redirect') || 'admin/dashboard.html';
+          window.location.href = redirect;
         }, 300);
       });
 
@@ -191,7 +247,8 @@
         });
         showToast('Đã đăng nhập với tư cách Hội viên sinh viên!', 'success');
         setTimeout(() => {
-          window.location.href = 'index.html';
+          const redirect = urlParams.get('redirect') || 'index.html';
+          window.location.href = redirect;
         }, 300);
       });
     });

@@ -366,8 +366,8 @@ export function canPerformAction(
   action: ClubRBACAction
 ): boolean {
   if (!user) {
-    // Unauthenticated visitors have only public view permissions
-    return action === 'view_overview';
+    // Unauthenticated guests have NO access: mandatory login required
+    return false;
   }
 
   // Admin has full omnipotent access to all features
@@ -794,16 +794,17 @@ export function runBrowserUnitTests(simulateBug = false): UnitTestCaseResult[] {
 
     const adminCanApprove = canPerformAction(adminUser, 'approve_expense');
     const memberCannotApprove = canPerformAction(memberUser, 'approve_expense');
+    const guestBlocked = canPerformAction(null, 'view_overview') === false;
     const duration = Math.round((performance.now() - start) * 100) / 100;
-    const passed = adminCanApprove === true && memberCannotApprove === false;
+    const passed = adminCanApprove === true && memberCannotApprove === false && guestBlocked;
 
     results.push({
       id: 'TC-12',
-      title: 'Kiểm tra phân quyền vai trò người dùng (RBAC Guard - Admin vs Member)',
+      title: 'Kiểm tra phân quyền vai trò (RBAC Guard - Khách bị chặn, Admin toàn quyền, Member hạn chế)',
       targetFunction: 'canPerformAction',
-      inputSummary: 'Hành động: approve_expense (Admin được phép, Member bị chặn)',
-      expected: 'adminCanApprove: true, memberCannotApprove: false',
-      actual: `admin: ${adminCanApprove}, member: ${memberCannotApprove}`,
+      inputSummary: 'Khách: bị chặn toàn bộ; Member: không được duyệt chi; Admin: toàn quyền',
+      expected: 'adminCanApprove: true, memberCannotApprove: false, guestBlocked: true',
+      actual: `admin: ${adminCanApprove}, member: ${memberCannotApprove}, guestBlocked: ${guestBlocked}`,
       latencyMs: duration,
       passed,
     });

@@ -313,9 +313,10 @@ describe('UniClub Hub - Domain Logic & Safety Rules Test Suite', () => {
     expect(canPerformAction(treasurer, 'approve_expense')).toBe(true);
     expect(canPerformAction(treasurer, 'manage_members')).toBe(false);
 
-    // Regular member cannot approve expenses or manage members
-    expect(canPerformAction(regularMember, 'approve_expense')).toBe(false);
-    expect(canPerformAction(regularMember, 'manage_members')).toBe(false);
-    expect(canPerformAction(regularMember, 'view_overview')).toBe(true);
+    // Unauthenticated guest is completely blocked from all actions
+    expect(canPerformAction(null, 'view_overview')).toBe(false);
+    expect(canPerformAction(null, 'manage_members')).toBe(false);
+    expect(canPerformAction(null, 'approve_expense')).toBe(false);
+    expect(canPerformAction(null, 'create_event')).toBe(false);
   });
 });

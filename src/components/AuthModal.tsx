@@ -139,7 +139,7 @@ export function AuthModal({
               </div>
             </div>
 
-            {!isMandatory && onClose && (
+            {!isMandatory && onClose ? (
               <button
                 onClick={onClose}
                 className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors"
@@ -147,6 +147,11 @@ export function AuthModal({
               >
                 ✕
               </button>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Bắt buộc đăng nhập</span>
+              </span>
             )}
           </div>
 
