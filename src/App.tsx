@@ -22,6 +22,7 @@ import {
   UserPlus,
   Sparkles,
   Lock,
+  Database,
 } from 'lucide-react';
 import { ClubMember, ClubEvent, TreasuryTransaction, AuthUser, UserRole } from './types.ts';
 import {
@@ -38,6 +39,25 @@ import { TreasuryTab } from './components/TreasuryTab.tsx';
 import { CicdPipelineTab } from './components/CicdPipelineTab.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { AuthGateView } from './components/AuthGateView.tsx';
+import { GeminiChatbot } from './components/GeminiChatbot.tsx';
+import {
+  seedInitialFirestoreData,
+  subscribeMembers,
+  subscribeEvents,
+  subscribeTransactions,
+  subscribeAuthUsers,
+  addMemberDoc,
+  updateMemberDoc,
+  deleteMemberDoc,
+  addEventDoc,
+  updateEventDoc,
+  addTransactionDoc,
+  updateTransactionDoc,
+  saveUserDoc,
+  signInWithGoogleAccount,
+  logoutFirebaseAuth,
+  ensureFirebaseAuth,
+} from './firebase/firestoreService.ts';
 
 type TabType = 'overview' | 'members' | 'events' | 'treasury' | 'cicd';
 
@@ -104,7 +124,9 @@ export default function App() {
   const [simulateBug, setSimulateBug] = useState<boolean>(false);
   const [pipelinePassed, setPipelinePassed] = useState<boolean>(true);
 
-  // Sync to LocalStorage
+  const [isFirestoreSynced, setIsFirestoreSynced] = useState<boolean>(false);
+
+  // Sync to LocalStorage (as instantaneous offline cache)
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(members));
   }, [members]);
@@ -129,6 +151,63 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Real-time Firestore Sync across all devices
+  useEffect(() => {
+    let active = true;
+
+    async function bootstrapFirestore() {
+      try {
+        await ensureFirebaseAuth();
+        await seedInitialFirestoreData();
+        if (active) setIsFirestoreSynced(true);
+      } catch (err) {
+        console.warn('Firestore initial boot warning:', err);
+      }
+    }
+
+    bootstrapFirestore();
+
+    const unsubMembers = subscribeMembers((remoteMembers) => {
+      if (remoteMembers && remoteMembers.length > 0) {
+        setMembers(remoteMembers);
+        setIsFirestoreSynced(true);
+      }
+    });
+
+    const unsubEvents = subscribeEvents((remoteEvents) => {
+      if (remoteEvents && remoteEvents.length > 0) {
+        setEvents(remoteEvents);
+        setIsFirestoreSynced(true);
+      }
+    });
+
+    const unsubTransactions = subscribeTransactions((remoteTransactions) => {
+      if (remoteTransactions && remoteTransactions.length > 0) {
+        setTransactions(remoteTransactions);
+        setIsFirestoreSynced(true);
+      }
+    });
+
+    const unsubUsers = subscribeAuthUsers((remoteUsers) => {
+      if (remoteUsers && remoteUsers.length > 0) {
+        setAuthUsers((prev) => {
+          const map = new Map(prev.map((u) => [u.id, u]));
+          remoteUsers.forEach((u) => map.set(u.id, u));
+          return Array.from(map.values());
+        });
+        setIsFirestoreSynced(true);
+      }
+    });
+
+    return () => {
+      active = false;
+      unsubMembers();
+      unsubEvents();
+      unsubTransactions();
+      unsubUsers();
+    };
+  }, []);
+
   // Keep pipelinePassed in sync with simulateBug
   useEffect(() => {
     if (simulateBug) {
@@ -149,57 +228,67 @@ export default function App() {
       localStorage.removeItem(STORAGE_KEY_MEMBERS);
       localStorage.removeItem(STORAGE_KEY_EVENTS);
       localStorage.removeItem(STORAGE_KEY_TRANSACTIONS);
+      seedInitialFirestoreData().catch(console.error);
     }
   };
 
-  // Member Handlers
+  // Member Handlers (Synced to Firestore)
   const handleAddMember = (newMemberData: Omit<ClubMember, 'id'>) => {
     const newMember: ClubMember = {
       ...newMemberData,
       id: `mem-${Date.now()}`,
     };
     setMembers((prev) => [newMember, ...prev]);
+    addMemberDoc(newMember).catch((err) => console.error('Add member Firestore error:', err));
   };
 
   const handleApproveMember = (id: string) => {
     setMembers((prev) =>
       prev.map((m) => (m.id === id ? { ...m, status: 'official', role: 'Thành viên chính thức' } : m))
     );
+    updateMemberDoc(id, { status: 'official', role: 'Thành viên chính thức' }).catch(console.error);
   };
 
   const handleAddScore = (id: string, points: number) => {
+    const currentMember = members.find((m) => m.id === id);
+    const newScore = (currentMember?.activityScore || 0) + points;
     setMembers((prev) =>
       prev.map((m) => (m.id === id ? { ...m, activityScore: m.activityScore + points } : m))
     );
+    updateMemberDoc(id, { activityScore: newScore }).catch(console.error);
   };
 
   const handleDeleteMember = (id: string) => {
     setMembers((prev) => prev.filter((m) => m.id !== id));
+    deleteMemberDoc(id).catch(console.error);
   };
 
-  // Event Handlers
+  // Event Handlers (Synced to Firestore)
   const handleAddEvent = (newEventData: Omit<ClubEvent, 'id'>) => {
     const newEvent: ClubEvent = {
       ...newEventData,
       id: `evt-${Date.now()}`,
     };
     setEvents((prev) => [newEvent, ...prev]);
+    addEventDoc(newEvent).catch((err) => console.error('Add event Firestore error:', err));
   };
 
   const handleToggleAttendee = (eventId: string, memberId: string) => {
+    const currentEvent = events.find((e) => e.id === eventId);
+    if (!currentEvent) return;
+
+    const exists = currentEvent.attendees.includes(memberId);
+    const updatedAttendees = exists
+      ? currentEvent.attendees.filter((id) => id !== memberId)
+      : [...currentEvent.attendees, memberId];
+
     setEvents((prev) =>
-      prev.map((ev) => {
-        if (ev.id !== eventId) return ev;
-        const exists = ev.attendees.includes(memberId);
-        const updated = exists
-          ? ev.attendees.filter((id) => id !== memberId)
-          : [...ev.attendees, memberId];
-        return { ...ev, attendees: updated };
-      })
+      prev.map((ev) => (ev.id === eventId ? { ...ev, attendees: updatedAttendees } : ev))
     );
+    updateEventDoc(eventId, { attendees: updatedAttendees }).catch(console.error);
   };
 
-  // Treasury Handlers
+  // Treasury Handlers (Synced to Firestore)
   const handleAddTransaction = (
     newTx: Omit<TreasuryTransaction, 'id' | 'voucherCode'>
   ) => {
@@ -214,6 +303,7 @@ export default function App() {
       voucherCode,
     };
     setTransactions((prev) => [created, ...prev]);
+    addTransactionDoc(created).catch((err) => console.error('Add tx Firestore error:', err));
   };
 
   const handleApproveTransaction = (id: string): { success: boolean; reason?: string } => {
@@ -231,6 +321,7 @@ export default function App() {
     setTransactions((prev) =>
       prev.map((t) => (t.id === id ? { ...t, status: 'approved' } : t))
     );
+    updateTransactionDoc(id, { status: 'approved' }).catch(console.error);
     return { success: true };
   };
 
@@ -238,11 +329,13 @@ export default function App() {
     setTransactions((prev) =>
       prev.map((t) => (t.id === id ? { ...t, status: 'rejected' } : t))
     );
+    updateTransactionDoc(id, { status: 'rejected' }).catch(console.error);
   };
 
   // Auth & RBAC Handlers
   const handleRegisterNewUser = (newUser: AuthUser) => {
     setAuthUsers((prev) => [newUser, ...prev]);
+    saveUserDoc(newUser).catch(console.error);
 
     // Also register as a member in the club roster
     const newMember: ClubMember = {
@@ -258,6 +351,23 @@ export default function App() {
       activityScore: 80,
     };
     setMembers((prev) => [newMember, ...prev]);
+    addMemberDoc(newMember).catch(console.error);
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const user = await signInWithGoogleAccount();
+      setCurrentUser(user);
+      setAuthUsers((prev) => {
+        if (!prev.some((u) => u.id === user.id || u.email === user.email)) {
+          return [user, ...prev];
+        }
+        return prev;
+      });
+      setIsAuthModalOpen(false);
+    } catch (err: any) {
+      console.error('Google Sign In Error:', err);
+    }
   };
 
   const handleSwitchRole = (targetRole: UserRole | 'guest') => {
@@ -265,6 +375,7 @@ export default function App() {
       setCurrentUser(null);
       localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
       setShowUserDropdown(false);
+      logoutFirebaseAuth().catch(console.error);
       return;
     }
     const existing = authUsers.find((u) => u.role === targetRole);
@@ -542,6 +653,28 @@ export default function App() {
               </button>
             )}
 
+            {/* Firestore Database Sync Badge */}
+            <div
+              title={
+                isFirestoreSynced
+                  ? 'Cơ sở dữ liệu Cloud Firestore hoạt động: Mọi thay đổi được lưu và đồng bộ tức thì trên mọi thiết bị'
+                  : 'Đang kết nối Cloud Firestore...'
+              }
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                isFirestoreSynced
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}
+            >
+              <Database className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{isFirestoreSynced ? 'Firestore Cloud DB' : 'Đang kết nối DB...'}</span>
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isFirestoreSynced ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                }`}
+              />
+            </div>
+
             {/* Reset Button */}
             <button
               onClick={handleResetData}
@@ -704,6 +837,7 @@ export default function App() {
               setIsAuthModalOpen(false);
             }}
             onRegisterNewUser={handleRegisterNewUser}
+            onGoogleSignIn={handleGoogleSignIn}
           />
         ) : (
           <>
@@ -797,7 +931,11 @@ export default function App() {
         authUsers={authUsers}
         onRegisterNewUser={handleRegisterNewUser}
         isMandatory={!currentUser}
+        onGoogleSignIn={handleGoogleSignIn}
       />
+
+      {/* Gemini AI Assistant Floating Chatbot */}
+      <GeminiChatbot currentUser={currentUser} />
     </div>
   );
 }

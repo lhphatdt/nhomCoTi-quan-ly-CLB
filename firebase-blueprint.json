@@ -1,0 +1,89 @@
+{
+  "entities": {
+    "ClubMember": {
+      "title": "ClubMember",
+      "description": "Student member in the club roster",
+      "type": "object",
+      "properties": {
+        "mssv": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "department": { "type": "string" },
+        "role": { "type": "string" },
+        "joinDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["official", "pending"] },
+        "activityScore": { "type": "number" }
+      },
+      "required": ["mssv", "fullName", "email", "department", "status"]
+    },
+    "ClubEvent": {
+      "title": "ClubEvent",
+      "description": "Club event or activity",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "location": { "type": "string" },
+        "leadDepartment": { "type": "string" },
+        "description": { "type": "string" },
+        "budget": { "type": "number" },
+        "attendees": { "type": "array" }
+      },
+      "required": ["title", "category", "date", "startTime", "endTime", "location", "leadDepartment"]
+    },
+    "TreasuryTransaction": {
+      "title": "TreasuryTransaction",
+      "description": "Financial voucher for income or expense",
+      "type": "object",
+      "properties": {
+        "voucherCode": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "requester": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string", "enum": ["approved", "pending", "rejected"] },
+        "note": { "type": "string" }
+      },
+      "required": ["voucherCode", "title", "type", "amount", "category", "requester", "status"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile and role mapping",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "mssv": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "roleTitle": { "type": "string" },
+        "department": { "type": "string" }
+      },
+      "required": ["uid", "fullName", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/members/{memberId}": {
+      "schema": "ClubMember",
+      "description": "Collection of club members"
+    },
+    "/events/{eventId}": {
+      "schema": "ClubEvent",
+      "description": "Collection of club events"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "TreasuryTransaction",
+      "description": "Collection of treasury transactions"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Collection of registered user profiles"
+    }
+  }
+}
