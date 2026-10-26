@@ -15,6 +15,7 @@ import {
   Sparkles,
   ArrowRight,
   GraduationCap,
+  Lock,
 } from 'lucide-react';
 import { AuthUser, Department, RegisterFormData, UserRole } from '../types.ts';
 import { authenticateUser, validateRegistration } from '../domain/clubLogic.ts';
