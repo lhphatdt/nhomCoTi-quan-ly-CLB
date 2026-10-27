@@ -183,7 +183,8 @@ export default function App() {
 
     const unsubTransactions = subscribeTransactions((remoteTransactions) => {
       if (remoteTransactions && remoteTransactions.length > 0) {
-        setTransactions(remoteTransactions);
+        const sorted = [...remoteTransactions].sort((a, b) => b.id.localeCompare(a.id));
+        setTransactions(sorted);
         setIsFirestoreSynced(true);
       }
     });

@@ -4,9 +4,6 @@ service cloud.firestore {
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
-    function isSignedIn() {
-      return request.auth != null;
-    }
 
     // Default deny catch-all
     match /{document=**} {
@@ -15,27 +12,27 @@ service cloud.firestore {
 
     // User profiles collection
     match /users/{userId} {
-      allow get, list: if isSignedIn();
-      allow create, update: if isSignedIn() && isValidId(userId);
+      allow get, list: if true;
+      allow create, update: if isValidId(userId);
       allow delete: if false;
     }
 
     // Club members collection
     match /members/{memberId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isSignedIn() && isValidId(memberId);
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(memberId);
     }
 
     // Events collection
     match /events/{eventId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isSignedIn() && isValidId(eventId);
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(eventId);
     }
 
     // Treasury transactions collection
     match /transactions/{transactionId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isSignedIn() && isValidId(transactionId);
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(transactionId);
     }
   }
 }
