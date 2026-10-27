@@ -51,6 +51,7 @@ import {
   deleteMemberDoc,
   addEventDoc,
   updateEventDoc,
+  deleteEventDoc,
   addTransactionDoc,
   updateTransactionDoc,
   saveUserDoc,
@@ -289,6 +290,18 @@ export default function App() {
     updateEventDoc(eventId, { attendees: updatedAttendees }).catch(console.error);
   };
 
+  const handleUpdateEvent = (eventId: string, updates: Partial<ClubEvent>) => {
+    setEvents((prev) =>
+      prev.map((ev) => (ev.id === eventId ? { ...ev, ...updates } : ev))
+    );
+    updateEventDoc(eventId, updates).catch((err) => console.error('Update event error:', err));
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    setEvents((prev) => prev.filter((ev) => ev.id !== eventId));
+    deleteEventDoc(eventId).catch((err) => console.error('Delete event error:', err));
+  };
+
   // Treasury Handlers (Synced to Firestore)
   const handleAddTransaction = (
     newTx: Omit<TreasuryTransaction, 'id' | 'voucherCode'>
@@ -410,15 +423,20 @@ export default function App() {
               onClick={() => handleTabClick('overview')}
               className="text-base font-extrabold tracking-tight text-slate-900 cursor-pointer flex items-center gap-2.5 group"
             >
-              <span className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-indigo-500 text-white flex items-center justify-center text-xs font-black shadow-xs group-hover:scale-105 transition-transform">
-                UC
-              </span>
+              <img
+                src="/assets/aistudio/logo_23f94b54.jpg"
+                alt="UniClub Logo"
+                className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200 shadow-xs group-hover:scale-105 transition-transform"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                }}
+              />
               <div className="flex flex-col">
                 <span className="font-extrabold text-sm sm:text-base leading-none text-slate-900">
                   UniClub Hub
                 </span>
-                <span className="text-[10px] text-slate-400 font-mono leading-tight mt-0.5 hidden sm:inline">
-                  Enterprise Platform · CI/CD
+                <span className="text-[10px] text-slate-500 font-medium leading-tight mt-0.5 hidden sm:inline">
+                  Hệ thống Quản trị & Điều hành CLB
                 </span>
               </div>
             </span>
@@ -869,6 +887,8 @@ export default function App() {
                 events={events}
                 members={members}
                 onAddEvent={handleAddEvent}
+                onUpdateEvent={handleUpdateEvent}
+                onDeleteEvent={handleDeleteEvent}
                 onToggleAttendee={handleToggleAttendee}
                 currentUser={currentUser}
                 onRequireAuth={() => setIsAuthModalOpen(true)}

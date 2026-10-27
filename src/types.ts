@@ -48,6 +48,11 @@ export interface ClubMember {
 
 export type EventCategory = 'Workshop' | 'Hackathon' | 'Sinh hoạt định kỳ' | 'Tuyển quân';
 
+export interface EventActivityItem {
+  time: string;
+  activity: string;
+}
+
 export interface ClubEvent {
   id: string;
   title: string;
@@ -61,6 +66,10 @@ export interface ClubEvent {
   status: 'upcoming' | 'ongoing' | 'completed';
   attendees: string[]; // member IDs who checked in
   expectedAttendees: number;
+  imageUrl?: string;
+  activities?: string[];
+  agenda?: EventActivityItem[];
+  targetAudience?: string;
 }
 
 export type TransactionType = 'income' | 'expense';

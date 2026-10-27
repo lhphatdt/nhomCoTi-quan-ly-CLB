@@ -267,6 +267,14 @@ export async function updateEventDoc(id: string, updates: Partial<ClubEvent>): P
   }
 }
 
+export async function deleteEventDoc(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, EVENTS_COLLECTION, id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${EVENTS_COLLECTION}/${id}`);
+  }
+}
+
 export async function addTransactionDoc(tx: TreasuryTransaction): Promise<void> {
   try {
     await setDoc(doc(db, TRANSACTIONS_COLLECTION, tx.id), tx);

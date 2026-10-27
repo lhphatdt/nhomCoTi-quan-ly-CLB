@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   LogIn,
   UserPlus,
-  Shield,
   KeyRound,
   Mail,
   User,
@@ -14,8 +13,9 @@ import {
   EyeOff,
   Sparkles,
   ArrowRight,
-  GraduationCap,
+  ShieldCheck,
   Lock,
+  X,
 } from 'lucide-react';
 import { AuthUser, Department, RegisterFormData, UserRole } from '../types.ts';
 import { authenticateUser, validateRegistration } from '../domain/clubLogic.ts';
@@ -30,6 +30,13 @@ interface AuthModalProps {
   onGoogleSignIn?: () => Promise<void> | void;
 }
 
+const REGISTRATION_DEPARTMENTS: Department[] = [
+  'Ban Chuyên môn',
+  'Ban Truyền thông',
+  'Ban Sự kiện',
+  'Ban Đối ngoại - Hậu cần',
+];
+
 export function AuthModal({
   isOpen,
   onClose,
@@ -42,8 +49,8 @@ export function AuthModal({
   const [mode, setMode] = useState<'login' | 'register'>('login');
 
   // Login form state
-  const [loginIdentifier, setLoginIdentifier] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState('B21DCCN001');
+  const [loginPassword, setLoginPassword] = useState('admin123');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -57,32 +64,25 @@ export function AuthModal({
     password: '',
     confirmPassword: '',
   });
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirm, setShowRegisterConfirm] = useState(false);
   const [registerErrors, setRegisterErrors] = useState<Record<string, string>>({});
   const [registerSuccess, setRegisterSuccess] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  // Handle Login submission
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
 
-    const result = authenticateUser(loginIdentifier, loginPassword, authUsers);
-    if (result.success && result.user) {
-      onLoginSuccess(result.user);
-      if (onClose) onClose();
+    const res = authenticateUser(loginIdentifier, loginPassword, authUsers);
+    if (res.success && res.user) {
+      onLoginSuccess(res.user);
     } else {
-      setLoginError(result.error || 'Đăng nhập không thành công.');
+      setLoginError(res.error || 'Thông tin đăng nhập không chính xác');
     }
   };
 
-  // Quick 1-Click login for faculty/reviewers
-  const handleQuickLogin = (user: AuthUser) => {
-    onLoginSuccess(user);
-    if (onClose) onClose();
-  };
-
-  // Handle Registration submission
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setRegisterErrors({});
@@ -94,49 +94,77 @@ export function AuthModal({
       return;
     }
 
+    // Check duplicate email
+    const emailNorm = registerData.email.trim().toLowerCase();
+    if (authUsers.some((u) => u.email.trim().toLowerCase() === emailNorm)) {
+      setRegisterErrors({ email: 'Email này đã được sử dụng. Vui lòng đăng nhập!' });
+      return;
+    }
+
+    // Check duplicate MSSV
+    const mssvNorm = registerData.mssv.trim().toUpperCase();
+    if (authUsers.some((u) => u.mssv.trim().toUpperCase() === mssvNorm)) {
+      setRegisterErrors({ mssv: 'Mã số sinh viên này đã có tài khoản trên hệ thống!' });
+      return;
+    }
+
+    // Create new member user (Strictly enforced role = member, cannot self-register admin)
     const newUser: AuthUser = {
       id: `user-${Date.now()}`,
-      mssv: registerData.mssv.trim().toUpperCase(),
+      mssv: mssvNorm,
       fullName: registerData.fullName.trim(),
-      email: registerData.email.trim().toLowerCase(),
+      email: emailNorm,
       phone: registerData.phone.trim(),
       department: registerData.department,
       role: 'member',
-      roleTitle: `Thành viên (${registerData.department})`,
+      roleTitle: 'Hội viên',
       status: 'official',
       password: registerData.password,
     };
 
     onRegisterNewUser(newUser);
-    setRegisterSuccess('Đăng ký tài khoản thành công! Đang tự động đăng nhập...');
+    setRegisterSuccess('Đăng ký thành công! Bạn có thể chuyển sang đăng nhập ngay.');
+    setRegisterData({
+      fullName: '',
+      mssv: '',
+      email: '',
+      phone: '',
+      department: 'Ban Chuyên môn',
+      password: '',
+      confirmPassword: '',
+    });
+  };
 
-    setTimeout(() => {
-      onLoginSuccess(newUser);
-      if (onClose) onClose();
-    }, 900);
+  const handleQuickLogin = (user: AuthUser) => {
+    onLoginSuccess(user);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="relative w-full max-w-xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden my-8 animate-in fade-in duration-200">
         {/* Top decorative gradient */}
-        <div className="h-2 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400" />
+        <div className="h-1.5 w-full bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-500" />
 
         {/* Header */}
-        <div className="p-6 sm:p-8 border-b border-slate-800/80">
+        <div className="p-6 sm:p-7 border-b border-slate-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                <GraduationCap className="w-6 h-6" />
-              </div>
+              <img
+                src="/assets/aistudio/logo_23f94b54.jpg"
+                alt="UniClub Logo"
+                className="w-11 h-11 rounded-2xl object-cover ring-1 ring-slate-200 shadow-sm"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                }}
+              />
               <div>
-                <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
                   UniClub Hub Authentication
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                     RBAC Gate
                   </span>
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Hệ thống phân quyền quản lý CLB Sinh viên & Chứng chỉ CI/CD
                 </p>
               </div>
@@ -144,62 +172,65 @@ export function AuthModal({
 
             {!isMandatory && onClose ? (
               <button
+                type="button"
                 onClick={onClose}
-                className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors"
+                className="text-slate-400 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-100 transition-colors"
                 title="Đóng"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
-                <Lock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Bắt buộc đăng nhập</span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+                <Lock className="w-3 h-3 text-amber-600" />
+                <span>Bắt buộc</span>
               </span>
             )}
           </div>
 
           {/* Mode Switch Tabs */}
-          <div className="grid grid-cols-2 gap-2 mt-6 p-1 bg-slate-950 rounded-2xl border border-slate-800/60">
+          <div className="grid grid-cols-2 gap-2 mt-5 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
             <button
+              type="button"
               onClick={() => {
                 setMode('login');
                 setLoginError(null);
               }}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all ${
                 mode === 'login'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <LogIn className="w-4 h-4" />
-              Đăng nhập tài khoản
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Đăng nhập tài khoản</span>
             </button>
             <button
+              type="button"
               onClick={() => {
                 setMode('register');
                 setRegisterErrors({});
               }}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all ${
                 mode === 'register'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <UserPlus className="w-4 h-4" />
-              Đăng ký thành viên
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Đăng ký thành viên</span>
             </button>
           </div>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 sm:p-8">
+        <div className="p-6 sm:p-7 max-h-[calc(85vh-12rem)] overflow-y-auto">
           {mode === 'login' ? (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {onGoogleSignIn && (
                 <button
                   type="button"
                   onClick={() => onGoogleSignIn()}
-                  className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-800 transition-all cursor-pointer shadow-md"
+                  className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 transition-all cursor-pointer shadow-xs"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -212,60 +243,60 @@ export function AuthModal({
               )}
 
               {onGoogleSignIn && (
-                <div className="relative flex items-center justify-center my-2">
-                  <div className="border-t border-slate-800 w-full" />
-                  <span className="bg-slate-900 px-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                <div className="relative flex items-center justify-center my-1">
+                  <div className="border-t border-slate-200 w-full" />
+                  <span className="bg-white px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     Hoặc đăng nhập sinh viên
                   </span>
                 </div>
               )}
 
               {loginError && (
-                <div className="flex items-start gap-3 p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-xs">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2.5 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
                   <span>{loginError}</span>
                 </div>
               )}
 
-              <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <form onSubmit={handleLoginSubmit} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                     Mã số sinh viên (MSSV) hoặc Email
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type="text"
                       required
                       value={loginIdentifier}
                       onChange={(e) => setLoginIdentifier(e.target.value)}
-                      placeholder="VD: B21DCCN001 hoặc an.nguyen@university.edu.vn"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                      placeholder="VD: B21DCCN001 hoặc phat.le@university.edu.vn"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold text-slate-300">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
                       Mật khẩu
                     </label>
-                    <span className="text-[11px] text-slate-500">Mặc định: [role]123</span>
+                    <span className="text-[11px] text-slate-500 font-mono">admin123</span>
                   </div>
                   <div className="relative">
-                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder="Nhập mật khẩu..."
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-10 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -274,44 +305,43 @@ export function AuthModal({
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition-all mt-2"
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition-all mt-2 cursor-pointer"
                 >
                   <LogIn className="w-4 h-4" />
-                  Đăng nhập vào Hệ thống
+                  <span>Đăng nhập vào Hệ thống</span>
                 </button>
               </form>
 
-              {/* 1-Click Fast Login Box (Extremely helpful for demo & grading) */}
-              <div className="pt-5 border-t border-slate-800/80">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-300 mb-3">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>Đăng nhập nhanh 1-Click (Dành cho Giảng viên & Hội đồng):</span>
+              {/* 1-Click Fast Login Box */}
+              <div className="pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 mb-2">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>Đăng nhập nhanh mẫu (Kiểm thử vai trò):</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {authUsers.map((u) => {
+                <div className="grid grid-cols-2 gap-2">
+                  {authUsers.slice(0, 4).map((u) => {
                     const roleColor =
                       u.role === 'admin'
-                        ? 'border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 text-purple-300'
+                        ? 'border-purple-200 bg-purple-50 text-purple-900 hover:bg-purple-100'
                         : u.role === 'treasurer'
-                        ? 'border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-300'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100'
                         : u.role === 'event_lead'
-                        ? 'border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-amber-300'
-                        : 'border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 text-blue-300';
+                        ? 'border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100'
+                        : 'border-blue-200 bg-blue-50 text-blue-900 hover:bg-blue-100';
 
                     return (
                       <button
                         key={u.id}
                         type="button"
                         onClick={() => handleQuickLogin(u)}
-                        className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all ${roleColor}`}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border text-left transition-all ${roleColor}`}
                       >
                         <div className="truncate">
-                          <div className="text-xs font-bold truncate text-white">{u.fullName}</div>
-                          <div className="text-[11px] opacity-80 truncate">{u.roleTitle}</div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">MSSV: {u.mssv}</div>
+                          <div className="text-xs font-bold truncate">{u.fullName}</div>
+                          <div className="text-[10px] opacity-80 truncate">{u.roleTitle}</div>
                         </div>
-                        <ArrowRight className="w-3.5 h-3.5 shrink-0 opacity-60 ml-2" />
+                        <ArrowRight className="w-3.5 h-3.5 shrink-0 opacity-60 ml-1" />
                       </button>
                     );
                   })}
@@ -320,184 +350,168 @@ export function AuthModal({
             </div>
           ) : (
             /* Registration Form */
-            <div className="space-y-5">
+            <div className="space-y-4">
               {registerSuccess && (
-                <div className="flex items-center gap-3 p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 text-xs">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <div className="flex items-center gap-2.5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                   <span>{registerSuccess}</span>
                 </div>
               )}
 
-              <form onSubmit={handleRegisterSubmit} className="space-y-4">
+              {registerErrors.general && (
+                <div className="flex items-center gap-2.5 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{registerErrors.general}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleRegisterSubmit} className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Họ và tên sinh viên *
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                      Họ và tên *
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="text"
                         required
                         value={registerData.fullName}
-                        onChange={(e) =>
-                          setRegisterData({ ...registerData, fullName: e.target.value })
-                        }
+                        onChange={(e) => setRegisterData({ ...registerData, fullName: e.target.value })}
                         placeholder="Nguyễn Văn Nam"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
                     </div>
-                    {registerErrors.fullName && (
-                      <p className="text-[11px] text-rose-400 mt-1">{registerErrors.fullName}</p>
-                    )}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Mã số sinh viên (MSSV) *
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                      MSSV *
                     </label>
                     <input
                       type="text"
                       required
                       value={registerData.mssv}
-                      onChange={(e) =>
-                        setRegisterData({ ...registerData, mssv: e.target.value.toUpperCase() })
-                      }
+                      onChange={(e) => setRegisterData({ ...registerData, mssv: e.target.value.toUpperCase() })}
                       placeholder="B23DCCN999"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 uppercase font-mono"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-900 uppercase font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                     {registerErrors.mssv && (
-                      <p className="text-[11px] text-rose-400 mt-1">{registerErrors.mssv}</p>
+                      <p className="text-[10px] text-rose-600 mt-0.5">{registerErrors.mssv}</p>
                     )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                       Email sinh viên *
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="email"
                         required
                         value={registerData.email}
-                        onChange={(e) =>
-                          setRegisterData({ ...registerData, email: e.target.value })
-                        }
+                        onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
                         placeholder="nam.nguyen@university.edu.vn"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
                     </div>
                     {registerErrors.email && (
-                      <p className="text-[11px] text-rose-400 mt-1">{registerErrors.email}</p>
+                      <p className="text-[10px] text-rose-600 mt-0.5">{registerErrors.email}</p>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Số điện thoại liên hệ *
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                      Số điện thoại *
                     </label>
                     <div className="relative">
-                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                       <input
                         type="tel"
                         required
                         value={registerData.phone}
-                        onChange={(e) =>
-                          setRegisterData({ ...registerData, phone: e.target.value })
-                        }
+                        onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
                         placeholder="0912345678"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
                     </div>
-                    {registerErrors.phone && (
-                      <p className="text-[11px] text-rose-400 mt-1">{registerErrors.phone}</p>
-                    )}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Nguyện vọng đăng ký vào Ban chuyên môn *
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Nguyện vọng Ban chuyên môn *
                   </label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <select
-                      value={registerData.department}
-                      onChange={(e) =>
-                        setRegisterData({
-                          ...registerData,
-                          department: e.target.value as Department,
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="Ban Chuyên môn">Ban Chuyên môn (Lập trình, Nghiên cứu, Thi đấu)</option>
-                      <option value="Ban Truyền thông">Ban Truyền thông (Thiết kế, Content, Fanpage)</option>
-                      <option value="Ban Sự kiện">Ban Sự kiện (Tổ chức Workshop, Teambuilding)</option>
-                      <option value="Ban Đối ngoại - Hậu cần">Ban Đối ngoại - Hậu cần (Tài trợ, Mua sắm)</option>
-                      <option value="Ban Chủ nhiệm">Ban Chủ nhiệm (Ban Cố vấn, Quản trị)</option>
-                    </select>
-                  </div>
+                  <select
+                    value={registerData.department}
+                    onChange={(e) => setRegisterData({ ...registerData, department: e.target.value as Department })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    {REGISTRATION_DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Mật khẩu (tối thiểu 6 ký tự) *
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                      Mật khẩu (≥ 6 ký tự) *
                     </label>
-                    <input
-                      type="password"
-                      required
-                      value={registerData.password}
-                      onChange={(e) =>
-                        setRegisterData({ ...registerData, password: e.target.value })
-                      }
-                      placeholder="••••••••"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                    />
-                    {registerErrors.password && (
-                      <p className="text-[11px] text-rose-400 mt-1">{registerErrors.password}</p>
-                    )}
+                    <div className="relative">
+                      <input
+                        type={showRegisterPassword ? 'text' : 'password'}
+                        required
+                        value={registerData.password}
+                        onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
+                        placeholder="Tối thiểu 6 ký tự"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 pr-8 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showRegisterPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                       Xác nhận mật khẩu *
                     </label>
-                    <input
-                      type="password"
-                      required
-                      value={registerData.confirmPassword}
-                      onChange={(e) =>
-                        setRegisterData({ ...registerData, confirmPassword: e.target.value })
-                      }
-                      placeholder="••••••••"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                    />
-                    {registerErrors.confirmPassword && (
-                      <p className="text-[11px] text-rose-400 mt-1">
-                        {registerErrors.confirmPassword}
-                      </p>
-                    )}
+                    <div className="relative">
+                      <input
+                        type={showRegisterConfirm ? 'text' : 'password'}
+                        required
+                        value={registerData.confirmPassword}
+                        onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
+                        placeholder="Nhập lại mật khẩu"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 pr-8 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRegisterConfirm(!showRegisterConfirm)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showRegisterConfirm ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
-
-                <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-[11px] text-slate-400 flex items-start gap-2">
-                  <Shield className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                  <span>
-                    Bằng việc nhấn Đăng ký, bạn cam kết tuân thủ Điều lệ Hoạt động và Nội quy Quản lý Tài chính CLB Sinh viên UniClub Hub.
-                  </span>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition-all"
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition-all mt-3 cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" />
-                  Hoàn tất Đăng ký & Kích hoạt Tài khoản
+                  <span>Xác nhận Đăng ký Hội viên</span>
                 </button>
               </form>
             </div>
