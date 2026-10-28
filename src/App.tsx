@@ -31,7 +31,13 @@ import {
   INITIAL_TRANSACTIONS,
   INITIAL_AUTH_USERS,
 } from './data/initialClubData.ts';
-import { calculateTreasuryBalance, canApproveExpense } from './domain/clubLogic.ts';
+import {
+  calculateTreasuryBalance,
+  canApproveExpense,
+  getVietnamNow,
+  formatVietnamDate,
+  isEventPastTime,
+} from './domain/clubLogic.ts';
 import { OverviewTab } from './components/OverviewTab.tsx';
 import { MembersTab } from './components/MembersTab.tsx';
 import { EventsTab } from './components/EventsTab.tsx';
@@ -218,6 +224,46 @@ export default function App() {
       setPipelinePassed(true);
     }
   }, [simulateBug]);
+
+  // Auto-complete events when their scheduled time has passed (Vietnam Time GMT+7)
+  useEffect(() => {
+    const checkExpiredEvents = () => {
+      const nowVN = getVietnamNow();
+      let hasChanges = false;
+      const updatedList = events.map((ev) => {
+        if (ev.status !== 'completed' && isEventPastTime(ev.date, ev.endTime, nowVN)) {
+          hasChanges = true;
+          const updatedEvent: ClubEvent = {
+            ...ev,
+            status: 'completed',
+            attendanceClosed: true,
+            closedBy: ev.closedBy || 'Hệ thống UniClub (Tự động)',
+            closedByRole: ev.closedByRole || 'Hết thời gian tổ chức',
+            closedAt: ev.closedAt || formatVietnamDate(nowVN),
+            closedReason: 'Thời gian sự kiện đã kết thúc theo lịch trình (GMT+7)',
+          };
+          updateEventDoc(ev.id, {
+            status: 'completed',
+            attendanceClosed: true,
+            closedBy: updatedEvent.closedBy,
+            closedByRole: updatedEvent.closedByRole,
+            closedAt: updatedEvent.closedAt,
+            closedReason: updatedEvent.closedReason,
+          }).catch(console.error);
+          return updatedEvent;
+        }
+        return ev;
+      });
+
+      if (hasChanges) {
+        setEvents(updatedList);
+      }
+    };
+
+    checkExpiredEvents();
+    const interval = setInterval(checkExpiredEvents, 20000); // Check every 20 seconds
+    return () => clearInterval(interval);
+  }, [events]);
 
   // Reset to initial mock data
   const handleResetData = () => {

@@ -70,6 +70,11 @@ export interface ClubEvent {
   activities?: string[];
   agenda?: EventActivityItem[];
   targetAudience?: string;
+  attendanceClosed?: boolean;
+  closedBy?: string;
+  closedByRole?: string;
+  closedAt?: string;
+  closedReason?: string;
 }
 
 export type TransactionType = 'income' | 'expense';

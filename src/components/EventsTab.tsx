@@ -34,6 +34,7 @@ import {
   Check,
   AlertCircle,
   Radio,
+  Printer,
 } from 'lucide-react';
 import {
   ClubEvent,
@@ -46,6 +47,12 @@ import {
   checkEventScheduleConflict,
   calculateAttendanceRate,
   canPerformAction,
+  getVietnamNow,
+  getVietnamDateString,
+  getVietnamTimeString,
+  formatVietnamDate,
+  formatVietnamDateTime,
+  isEventPastTime,
 } from '../domain/clubLogic.ts';
 
 interface EventsTabProps {
@@ -170,19 +177,19 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     );
   }, [members, currentUser]);
 
-  // Today reference (October 27, 2026 or real system date)
-  const todayStr = useMemo(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    return y === 2026 ? `${y}-${m}-${d}` : '2026-10-27';
+  // Vietnam Timezone (GMT+7) live ticker
+  const [vnNow, setVnNow] = useState<Date>(() => getVietnamNow());
+  useEffect(() => {
+    const timer = setInterval(() => setVnNow(getVietnamNow()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  // Calendar view state: Year & Month
-  const [currentYear, setCurrentYear] = useState<number>(2026);
-  const [currentMonth, setCurrentMonth] = useState<number>(9); // 0-indexed: 9 = October
-  const [selectedDate, setSelectedDate] = useState<string>('2026-10-27');
+  const todayStr = useMemo(() => getVietnamDateString(vnNow), [vnNow]);
+
+  // Calendar view state: Year & Month initialized to Vietnam Time
+  const [currentYear, setCurrentYear] = useState<number>(() => getVietnamNow().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState<number>(() => getVietnamNow().getMonth());
+  const [selectedDate, setSelectedDate] = useState<string>(() => getVietnamDateString(getVietnamNow()));
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
 
   // Modals state
@@ -192,11 +199,13 @@ export const EventsTab: React.FC<EventsTabProps> = ({
   const [attendeeSearch, setAttendeeSearch] = useState<string>('');
 
   // =========================================================================
-  // DYNAMIC 10-SECOND ROTATING QR CODE BROADCAST STATE
+  // DYNAMIC 5-SECOND ANTI-FRAUD ROTATING QR CODE ATTENDANCE MODAL STATE
+  // Tabs: 'broadcast' (Màn hình QR), 'scan' (Tôi Điểm Danh), 'roster' (Danh sách)
   // =========================================================================
   const [qrBroadcastEvent, setQrBroadcastEvent] = useState<ClubEvent | null>(null);
+  const [attendanceModalTab, setAttendanceModalTab] = useState<'broadcast' | 'scan' | 'roster'>('broadcast');
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
-  const [qrSecondsLeft, setQrSecondsLeft] = useState<number>(10);
+  const [qrSecondsLeft, setQrSecondsLeft] = useState<number>(5);
   const [currentQrToken, setCurrentQrToken] = useState<string>('');
   const [isQrFullscreen, setIsQrFullscreen] = useState<boolean>(false);
 
@@ -280,11 +289,11 @@ export const EventsTab: React.FC<EventsTabProps> = ({
   }, [events]);
 
   // =========================================================================
-  // DYNAMIC 10-SECOND ROTATING QR CODE ENGINE
+  // DYNAMIC 5-SECOND ANTI-FRAUD ROTATING QR CODE ENGINE
   // =========================================================================
   useEffect(() => {
-    if (!qrBroadcastEvent) {
-      setQrSecondsLeft(10);
+    if (!qrBroadcastEvent || qrBroadcastEvent.attendanceClosed) {
+      setQrSecondsLeft(5);
       setQrDataUrl('');
       setCurrentQrToken('');
       return;
@@ -292,8 +301,9 @@ export const EventsTab: React.FC<EventsTabProps> = ({
 
     let isMounted = true;
 
-    // Helper to generate a rotating QR payload
+    // Helper to generate a rotating QR payload (5s rotation)
     const regenerateQr = async () => {
+      if (!qrBroadcastEvent || qrBroadcastEvent.attendanceClosed) return;
       const now = Date.now();
       const nonce = Math.random().toString(36).substring(2, 8).toUpperCase();
       const token = `QR-${qrBroadcastEvent.id.slice(-4)}-${nonce}-${now.toString(36).slice(-4).toUpperCase()}`;
@@ -304,7 +314,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
         eventTitle: qrBroadcastEvent.title,
         date: qrBroadcastEvent.date,
         timestamp: now,
-        expiresAt: now + 12000, // 12 seconds validity (10s rotation + 2s buffer)
+        expiresAt: now + 7000, // 7 seconds validity (5s rotation + 2s network grace buffer)
         token,
       };
 
@@ -315,7 +325,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
           width: 360,
           margin: 2,
           color: {
-            dark: '#1e1b4b',
+            dark: '#0f172a',
             light: '#ffffff',
           },
           errorCorrectionLevel: 'M',
@@ -331,14 +341,14 @@ export const EventsTab: React.FC<EventsTabProps> = ({
 
     // Generate initial QR code immediately
     regenerateQr();
-    setQrSecondsLeft(10);
+    setQrSecondsLeft(5);
 
-    // 1-second interval to update countdown timer and refresh every 10 seconds
+    // 1-second interval to update countdown timer and refresh every 5 seconds
     const interval = setInterval(() => {
       setQrSecondsLeft((prev) => {
         if (prev <= 1) {
           regenerateQr();
-          return 10;
+          return 5;
         }
         return prev - 1;
       });
@@ -353,8 +363,14 @@ export const EventsTab: React.FC<EventsTabProps> = ({
   // =========================================================================
   // CAMERA STREAM HANDLER FOR QR SCANNER
   // =========================================================================
+  // CAMERA STREAM HANDLER FOR QR SCANNER
+  // =========================================================================
   useEffect(() => {
-    if (qrScanTargetEvent && scanMethod === 'camera') {
+    const isScanning =
+      scanMethod === 'camera' &&
+      ((qrBroadcastEvent !== null && attendanceModalTab === 'scan') || qrScanTargetEvent !== null);
+
+    if (isScanning) {
       let isMounted = true;
 
       navigator.mediaDevices
@@ -382,11 +398,12 @@ export const EventsTab: React.FC<EventsTabProps> = ({
         }
       };
     }
-  }, [qrScanTargetEvent, scanMethod]);
+  }, [qrBroadcastEvent, attendanceModalTab, qrScanTargetEvent, scanMethod]);
 
   // Execute attendance verification
   const handleVerifyAndCheckIn = (scannedPayloadStr: string) => {
-    if (!qrScanTargetEvent) return;
+    const activeTarget = qrBroadcastEvent || qrScanTargetEvent;
+    if (!activeTarget) return;
 
     if (!currentUser) {
       setScanResultFeedback({
@@ -400,21 +417,21 @@ export const EventsTab: React.FC<EventsTabProps> = ({
       const payload = JSON.parse(scannedPayloadStr);
 
       // Verify event match
-      if (payload.eventId !== qrScanTargetEvent.id) {
+      if (payload.eventId !== activeTarget.id) {
         setScanResultFeedback({
           type: 'error',
-          message: `Mã QR này thuộc sự kiện "${payload.eventTitle || 'khác'}", không khớp với sự kiện "${qrScanTargetEvent.title}"!`,
+          message: `Mã QR này thuộc sự kiện "${payload.eventTitle || 'khác'}", không khớp với sự kiện "${activeTarget.title}"!`,
         });
         return;
       }
 
-      // Verify rotation expiry (10 seconds with 5s grace buffer)
+      // Verify rotation expiry (5 seconds with 4s grace network buffer)
       const now = Date.now();
       const ageMs = now - (payload.timestamp || 0);
-      if (ageMs > 15000) {
+      if (ageMs > 9000) {
         setScanResultFeedback({
           type: 'error',
-          message: 'Mã QR đã hết hạn (quá 10 giây)! Vui lòng quét mã mới đang chiếu trên màn hình ban tổ chức.',
+          message: 'Mã QR đã hết hạn (quá 5 giây)! Vui lòng quét mã mới đang xoay vòng trên màn hình ban tổ chức.',
         });
         return;
       }
@@ -430,7 +447,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
       }
 
       // Check if already checked in
-      if (qrScanTargetEvent.attendees.includes(member.id)) {
+      if (activeTarget.attendees.includes(member.id)) {
         setScanResultFeedback({
           type: 'success',
           message: `Sinh viên ${member.fullName} (${member.mssv}) đã được điểm danh trước đó rồi!`,
@@ -441,8 +458,16 @@ export const EventsTab: React.FC<EventsTabProps> = ({
       }
 
       // Record attendance
-      onToggleAttendee(qrScanTargetEvent.id, member.id);
+      onToggleAttendee(activeTarget.id, member.id);
       const timeStr = new Date().toLocaleTimeString('vi-VN');
+
+      // Update local modal state immediately
+      if (qrBroadcastEvent && qrBroadcastEvent.id === activeTarget.id) {
+        setQrBroadcastEvent({
+          ...qrBroadcastEvent,
+          attendees: [...qrBroadcastEvent.attendees, member.id],
+        });
+      }
 
       setScanResultFeedback({
         type: 'success',
@@ -712,18 +737,28 @@ export const EventsTab: React.FC<EventsTabProps> = ({
   };
 
   // Delete Event Handler
+  // Delete Event Handler (President & Event Organizer)
   const handleDeleteEventClick = (eventId: string, title: string) => {
     if (!currentUser) {
       onRequireAuth?.();
       return;
     }
-    if (confirm(`Bạn có chắc chắn muốn xóa sự kiện "${title}" khỏi hệ thống?`)) {
+    const targetEvent = events.find((e) => e.id === eventId);
+    if (targetEvent && !canManageEvents && !isAuthorizedOrganizer(targetEvent)) {
+      alert('Bạn không có quyền xóa sự kiện này. Thao tác chỉ dành cho Chủ nhiệm CLB và Ban phụ trách sự kiện.');
+      return;
+    }
+    if (confirm(`Bạn có chắc chắn muốn xóa sự kiện "${title}" khỏi hệ thống?\n\nThao tác này sẽ xóa vĩnh viễn sự kiện và toàn bộ lịch sử điểm danh khỏi cơ sở dữ liệu.`)) {
       if (onDeleteEvent) {
         onDeleteEvent(eventId);
       }
       if (detailModalEvent?.id === eventId) {
         setDetailModalEvent(null);
       }
+      if (qrBroadcastEvent?.id === eventId) {
+        setQrBroadcastEvent(null);
+      }
+      alert(`Đã xóa sự kiện "${title}" thành công khỏi hệ thống!`);
     }
   };
 
@@ -737,28 +772,47 @@ export const EventsTab: React.FC<EventsTabProps> = ({
       `Xác nhận kết thúc phiên điểm danh cho sự kiện "${ev.title}"?\n\n` +
       `• Đã điểm danh: ${ev.attendees.length} / ${ev.expectedAttendees} sinh viên\n` +
       `• Tỷ lệ tham dự: ${Math.round((ev.attendees.length / (ev.expectedAttendees || 1)) * 100)}%\n\n` +
-      `Sau khi kết thúc, màn hình chiếu mã QR động sẽ dừng phát và danh sách tham dự được chốt lưu lại.`
+      `Sau khi kết thúc, phiên điểm danh sẽ được chốt sổ, dừng phát mã QR và lưu trữ vĩnh viễn trên hệ thống.`
     );
     if (!confirmed) return;
 
+    const closedAtStr = formatVietnamDate(getVietnamNow());
+    const closedByStr = currentUser?.fullName || 'Nguyễn Văn An';
+    const closedByRoleStr = currentUser?.roleTitle || 'Chủ nhiệm CLB';
+
+    const updates: Partial<ClubEvent> = {
+      status: 'completed',
+      attendanceClosed: true,
+      closedBy: closedByStr,
+      closedByRole: closedByRoleStr,
+      closedAt: closedAtStr,
+      closedReason: 'Phiên điểm danh đã kết thúc và chốt số',
+    };
+
     if (onUpdateEvent) {
-      onUpdateEvent(ev.id, {
-        status: 'completed',
-      });
+      onUpdateEvent(ev.id, updates);
     }
 
+    const updatedEv: ClubEvent = {
+      ...ev,
+      ...updates,
+    };
+
     if (detailModalEvent && detailModalEvent.id === ev.id) {
-      setDetailModalEvent({
-        ...detailModalEvent,
-        status: 'completed',
-      });
+      setDetailModalEvent(updatedEv);
     }
 
     if (qrBroadcastEvent && qrBroadcastEvent.id === ev.id) {
-      setQrBroadcastEvent(null);
+      setQrBroadcastEvent(updatedEv);
+      setAttendanceModalTab('broadcast'); // Stay on modal and display Image 1 locked state
     }
 
-    alert(`Đã kết thúc điểm danh cho sự kiện "${ev.title}" thành công!\nTổng cộng có ${ev.attendees.length} sinh viên đã được ghi nhận có mặt.`);
+    alert(`Đã kết thúc điểm danh cho sự kiện "${ev.title}" thành công!\nBiên bản đã được chốt và ký số bởi ${closedByStr} (${closedByRoleStr}).`);
+  };
+
+  // Print Roster / Attendance Report
+  const handlePrintRoster = () => {
+    window.print();
   };
 
   // Add activity item to list
@@ -787,8 +841,18 @@ export const EventsTab: React.FC<EventsTabProps> = ({
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Theo dõi thời khóa biểu, tạo mã QR động tự động đổi sau 10 giây và quét QR điểm danh chính xác theo thời gian thực
+            Theo dõi thời khóa biểu, điểm danh bằng mã QR xoay vòng 5s chống gian lận và tự động đồng bộ theo múi giờ chuẩn Việt Nam (GMT+7).
           </p>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
+              <Clock className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+              <span>Giờ VN (GMT+7): {formatVietnamDateTime(vnNow)}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              <span>Tự động kết thúc khi qua giờ</span>
+            </span>
+          </div>
         </div>
 
         {/* CONTROLS & FILTER */}
@@ -1130,50 +1194,84 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                         {/* ========================================================================= */}
                         <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
                           <div className="grid grid-cols-2 gap-2">
-                            {/* DYNAMIC QR CODE GENERATOR BUTTON (Organizer Only) */}
-                            {isOrganizer ? (
-                              <button
-                                type="button"
-                                onClick={() => setQrBroadcastEvent(ev)}
-                                className="py-2 px-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                                title="Mở màn hình chiếu mã QR động 10 giây/lần"
-                              >
-                                <QrCode className="w-3.5 h-3.5" />
-                                <span>Tạo QR Động (10s)</span>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled
-                                className="py-2 px-2.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed flex items-center justify-center gap-1"
-                                title="Chỉ Trưởng ban sự kiện này và Chủ nhiệm mới có quyền tạo QR điểm danh"
-                              >
-                                <Lock className="w-3 h-3 text-slate-400" />
-                                <span>Tạo QR (Trưởng ban)</span>
-                              </button>
-                            )}
+                            {ev.attendanceClosed || ev.status === 'completed' ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setQrBroadcastEvent(ev);
+                                    setAttendanceModalTab('broadcast');
+                                  }}
+                                  className="py-2 px-2.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                                  title="Biên bản điểm danh đã chốt số"
+                                >
+                                  <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Đã chốt sổ ({ev.attendees.length})</span>
+                                </button>
 
-                            {/* QR CODE SCANNER BUTTON (Students & Organizers) */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!currentUser) {
-                                  onRequireAuth?.();
-                                  return;
-                                }
-                                setQrScanTargetEvent(ev);
-                                setScanResultFeedback(null);
-                                setManualTokenInput('');
-                              }}
-                              className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-colors flex items-center justify-center gap-1.5 ${
-                                isCheckedIn
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                              }`}
-                            >
-                              <Scan className="w-3.5 h-3.5" />
-                              <span>{isCheckedIn ? 'Đã điểm danh ✓' : 'Quét QR Điểm danh'}</span>
-                            </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setQrBroadcastEvent(ev);
+                                    setAttendanceModalTab('roster');
+                                  }}
+                                  className="py-2 px-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 border border-slate-300 hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                                  title="Xem danh sách người tham dự chính thức"
+                                >
+                                  <Users className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span>Danh sách ({ev.attendees.length})</span>
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                {isOrganizer ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setQrBroadcastEvent(ev);
+                                      setAttendanceModalTab('broadcast');
+                                    }}
+                                    className="py-2 px-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                                    title="Mở màn hình chiếu mã QR động xoay vòng 5s"
+                                  >
+                                    <QrCode className="w-3.5 h-3.5" />
+                                    <span>Tạo QR Động (5s)</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled
+                                    className="py-2 px-2.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed flex items-center justify-center gap-1"
+                                    title="Chỉ Trưởng ban sự kiện này và Chủ nhiệm mới có quyền tạo QR điểm danh"
+                                  >
+                                    <Lock className="w-3 h-3 text-slate-400" />
+                                    <span>Tạo QR (Trưởng ban)</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!currentUser) {
+                                      onRequireAuth?.();
+                                      return;
+                                    }
+                                    setQrBroadcastEvent(ev);
+                                    setAttendanceModalTab('scan');
+                                    setScanResultFeedback(null);
+                                    setManualTokenInput('');
+                                  }}
+                                  className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
+                                    isCheckedIn
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                                  }`}
+                                >
+                                  <Scan className="w-3.5 h-3.5" />
+                                  <span>{isCheckedIn ? 'Đã điểm danh ✓' : 'Quét QR Điểm danh'}</span>
+                                </button>
+                              </>
+                            )}
                           </div>
 
                           {/* DETAILS BUTTON & ADMIN ACTIONS */}
@@ -1181,18 +1279,18 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                             <button
                               type="button"
                               onClick={() => setDetailModalEvent(ev)}
-                              className="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors flex items-center justify-center gap-1.5"
+                              className="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                             >
                               <Eye className="w-3.5 h-3.5" />
                               <span>Xem lịch trình chi tiết</span>
                             </button>
 
-                            {canManageEvents && (
+                            {(canManageEvents || isOrganizer) && (
                               <>
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEditModal(ev)}
-                                  className="p-1.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition-colors"
+                                  className="p-1.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
                                   title="Chỉnh sửa sự kiện"
                                 >
                                   <Edit3 className="w-3.5 h-3.5" />
@@ -1200,7 +1298,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteEventClick(ev.id, ev.title)}
-                                  className="p-1.5 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-slate-200 transition-colors"
+                                  className="p-1.5 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
                                   title="Xóa sự kiện"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -1245,38 +1343,78 @@ export const EventsTab: React.FC<EventsTabProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. DYNAMIC 10-SECOND ROTATING QR CODE BROADCAST MODAL (PROJECTOR SCREEN) */}
+      {/* 2. UNIFIED DYNAMIC ANTI-FRAUD QR ATTENDANCE MODAL (MATCHES REFERENCE 1 & 2) */}
       {/* ========================================================================= */}
       {qrBroadcastEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
           <div
             className={`relative w-full ${
-              isQrFullscreen ? 'max-w-4xl h-[95vh]' : 'max-w-2xl'
-            } bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col transition-all duration-300`}
+              isQrFullscreen ? 'max-w-5xl h-[95vh]' : 'max-w-4xl'
+            } bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col transition-all duration-300 my-4`}
           >
-            {/* MODAL HEADER */}
-            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white">
+            {/* MODAL HEADER (DARK NAVY THEME) */}
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900 text-white">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center justify-center">
-                  <QrCode className="w-5 h-5 text-indigo-400" />
+                <div className="w-10 h-10 rounded-2xl bg-indigo-950/80 text-indigo-400 border border-indigo-700/60 flex items-center justify-center shrink-0">
+                  <QrCode className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-base sm:text-lg font-extrabold tracking-tight">
-                      Màn hình Chiếu Mã QR Điểm danh Động
+                      Điểm Danh QR Động (Anti-Fraud)
                     </h3>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                      <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-                      <span>Đang phát trực tiếp</span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
+                      Xoay mã 5s
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 truncate max-w-md">
+                  <p className="text-xs text-slate-400 truncate max-w-sm sm:max-w-md mt-0.5">
                     {qrBroadcastEvent.title} · {qrBroadcastEvent.location}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                {/* 3 SEGMENTED NAVIGATION TABS */}
+                <div className="bg-slate-800/90 p-1 rounded-xl flex items-center gap-1 border border-slate-700/60 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setAttendanceModalTab('broadcast')}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      attendanceModalTab === 'broadcast'
+                        ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    }`}
+                  >
+                    Màn hình QR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttendanceModalTab('scan');
+                      setScanResultFeedback(null);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      attendanceModalTab === 'scan'
+                        ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    }`}
+                  >
+                    Tôi Điểm Danh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAttendanceModalTab('roster')}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      attendanceModalTab === 'roster'
+                        ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    }`}
+                  >
+                    Danh sách ({qrBroadcastEvent.attendees.length})
+                  </button>
+                </div>
+
+                {/* FULLSCREEN TOGGLE */}
                 <button
                   type="button"
                   onClick={() => setIsQrFullscreen(!isQrFullscreen)}
@@ -1285,294 +1423,515 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 >
                   {isQrFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
+
+                {/* CLOSE BUTTON */}
                 <button
                   type="button"
                   onClick={() => setQrBroadcastEvent(null)}
                   className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                  title="Đóng màn hình chiếu"
+                  title="Đóng"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {/* MODAL BODY */}
-            <div className="p-6 sm:p-8 flex-1 flex flex-col items-center justify-center text-center space-y-5 overflow-y-auto">
-              {/* 10-SECOND ROTATING TIMER INDICATOR */}
-              <div className="w-full max-w-sm space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                  <span className="flex items-center gap-1.5 text-indigo-700">
-                    <RefreshCw className={`w-3.5 h-3.5 ${qrSecondsLeft <= 2 ? 'animate-spin' : ''}`} />
-                    <span>Tự động đổi mã sau:</span>
-                  </span>
-                  <span className="font-mono text-sm px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
-                    {qrSecondsLeft} giây
-                  </span>
+            {/* TOP 3 METRICS CARDS (EXACT MATCH TO REFERENCE 1 & 2) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-6 pb-2 bg-slate-50/50 border-b border-slate-100">
+              {/* CARD 1: THỜI LƯỢNG MỞ TỐI ĐA */}
+              <div
+                className={`p-4 rounded-2xl border transition-all flex items-center gap-3.5 ${
+                  qrBroadcastEvent.attendanceClosed || qrBroadcastEvent.status === 'completed'
+                    ? 'bg-white border-emerald-200 shadow-2xs'
+                    : 'bg-white border-slate-200'
+                }`}
+              >
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+                    qrBroadcastEvent.attendanceClosed || qrBroadcastEvent.status === 'completed'
+                      ? 'bg-emerald-500 text-white shadow-xs'
+                      : 'bg-indigo-600 text-white shadow-xs'
+                  }`}
+                >
+                  <Clock className="w-6 h-6" />
                 </div>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    THỜI LƯỢNG MỞ TỐI ĐA
+                  </div>
+                  <div className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+                    {qrBroadcastEvent.attendanceClosed || qrBroadcastEvent.status === 'completed'
+                      ? 'ĐÃ CHỐT SỔ'
+                      : '15:00'}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {qrBroadcastEvent.attendanceClosed || qrBroadcastEvent.status === 'completed'
+                      ? 'Đã kết thúc điểm danh'
+                      : 'Đang mở điểm danh trực tiếp'}
+                  </div>
+                </div>
+              </div>
 
-                {/* Progress bar */}
-                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-1000 ease-linear rounded-full"
-                    style={{ width: `${(qrSecondsLeft / 10) * 100}%` }}
+              {/* CARD 2: CHU KỲ ĐỔI MÃ CHỐNG GIAN LẬN */}
+              <div className="p-4 rounded-2xl border border-slate-200 bg-white flex items-center gap-3.5 shadow-2xs">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                  <RefreshCw
+                    className={`w-6 h-6 ${
+                      !qrBroadcastEvent.attendanceClosed && qrBroadcastEvent.status !== 'completed'
+                        ? 'animate-spin'
+                        : ''
+                    }`}
+                    style={{ animationDuration: '6s' }}
                   />
                 </div>
-              </div>
-
-              {/* QR CODE CONTAINER */}
-              <div className="relative p-4 sm:p-6 bg-white rounded-3xl border-2 border-indigo-200 shadow-xl inline-block group">
-                {qrDataUrl ? (
-                  <img
-                    src={qrDataUrl}
-                    alt="Mã QR Điểm Danh Động"
-                    className="w-64 h-64 sm:w-72 sm:h-72 object-contain mx-auto rounded-2xl"
-                  />
-                ) : (
-                  <div className="w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center bg-slate-50 rounded-2xl">
-                    <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    CHU KỲ ĐỔI MÃ CHỐNG GIAN LẬN
                   </div>
-                )}
-
-                {/* Center Badge Icon */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-12 h-12 rounded-2xl bg-white shadow-lg border border-slate-200 flex items-center justify-center text-indigo-600 font-extrabold text-xs">
-                    UC
+                  <div className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+                    5 giây
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    Ngăn chặn chụp màn hình điểm danh hộ
                   </div>
                 </div>
               </div>
 
-              {/* SECURITY EXPLANATION NOTICE */}
-              <div className="max-w-md text-xs text-slate-500 space-y-1">
-                <p className="font-semibold text-slate-700 flex items-center justify-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Bảo mật chống gian lận & điểm danh hộ</span>
-                </p>
-                <p>
-                  Mã QR được mã hóa và thay đổi động sau mỗi <strong>10 giây</strong>. Ảnh chụp màn hình gửi từ xa sẽ tự động hết hạn và bị hệ thống từ chối.
-                </p>
-              </div>
-
-              {/* LIVE ATTENDANCE MONITORING STATS */}
-              <div className="w-full max-w-lg p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                <div className="text-left">
-                  <div className="text-slate-500">Tiến độ điểm danh thực tế:</div>
-                  <div className="text-sm font-extrabold text-slate-900">
-                    {qrBroadcastEvent.attendees.length} / {qrBroadcastEvent.expectedAttendees} sinh viên
-                  </div>
+              {/* CARD 3: ĐÃ ĐIỂM DANH */}
+              <div className="p-4 rounded-2xl border border-slate-200 bg-white flex items-center gap-3.5 shadow-2xs">
+                <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Users className="w-6 h-6" />
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQrScanTargetEvent(qrBroadcastEvent);
-                      setScanResultFeedback(null);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
-                  >
-                    <Scan className="w-3.5 h-3.5" />
-                    <span>Mở máy quét điểm danh</span>
-                  </button>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    ĐÃ ĐIỂM DANH
+                  </div>
+                  <div className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+                    {qrBroadcastEvent.attendees.length} / {qrBroadcastEvent.expectedAttendees}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    Tỷ lệ: {Math.round((qrBroadcastEvent.attendees.length / (qrBroadcastEvent.expectedAttendees || 1)) * 100)}%
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* MODAL FOOTER */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-              <div className="truncate max-w-sm">
-                Thẩm quyền: <strong>{isClubPresident ? 'Chủ nhiệm CLB' : 'Trưởng ban Sự kiện'}</strong>
+            {/* MODAL MAIN CONTENT AREA (DYNAMIC ACCORDING TO ACTIVE TAB) */}
+            <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
+              {/* TAB 1: MÀN HÌNH QR */}
+              {attendanceModalTab === 'broadcast' && (
+                <>
+                  {/* CASE A: ATTENDANCE CLOSED / LOCKED (EXACT MATCH TO REFERENCE IMAGE 1) */}
+                  {qrBroadcastEvent.attendanceClosed || qrBroadcastEvent.status === 'completed' ? (
+                    <div className="rounded-3xl border border-emerald-300 bg-emerald-50/20 p-8 sm:p-12 text-center flex flex-col items-center justify-center space-y-4 my-2 shadow-xs">
+                      {/* Center Green Lock Icon */}
+                      <div className="w-16 h-16 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
+                        <Lock className="w-8 h-8" />
+                      </div>
+
+                      {/* Locked Badge */}
+                      <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300 uppercase tracking-wider">
+                        ĐÃ CHỐT DANH SÁCH (LOCKED)
+                      </span>
+
+                      {/* Heading */}
+                      <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                        Phiên điểm danh đã kết thúc
+                      </h2>
+
+                      {/* Subtitle with signer and time */}
+                      <p className="text-xs sm:text-sm text-slate-600 max-w-lg leading-relaxed">
+                        Danh sách người tham dự đã được chốt và ký số bởi{' '}
+                        <strong className="text-slate-900 font-bold">
+                          {qrBroadcastEvent.closedBy || 'Nguyễn Văn An (Chủ nhiệm CLB)'}
+                        </strong>{' '}
+                        lúc <span className="font-mono">{qrBroadcastEvent.closedAt || '28/10/2026'}</span>. Không thể bổ sung thêm thành viên mới.
+                      </p>
+
+                      {/* Two Action Buttons from Image 1 */}
+                      <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+                        <button
+                          type="button"
+                          onClick={() => setAttendanceModalTab('roster')}
+                          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                        >
+                          <Users className="w-4 h-4" />
+                          <span>Xem danh sách chốt ({qrBroadcastEvent.attendees.length} thành viên)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handlePrintRoster}
+                          className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-bold shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+                        >
+                          <Printer className="w-4 h-4" />
+                          <span>In biên bản điểm danh</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* CASE B: ATTENDANCE ACTIVE (ROTATING 5-SECOND DYNAMIC QR) */
+                    <div className="flex flex-col items-center justify-center text-center space-y-5 py-4">
+                      {/* 5-SECOND ROTATING TIMER INDICATOR */}
+                      <div className="w-full max-w-sm space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                          <span className="flex items-center gap-1.5 text-indigo-700">
+                            <RefreshCw className={`w-3.5 h-3.5 ${qrSecondsLeft <= 2 ? 'animate-spin' : ''}`} />
+                            <span>Tự động đổi mã sau:</span>
+                          </span>
+                          <span className="font-mono text-sm px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                            {qrSecondsLeft} giây
+                          </span>
+                        </div>
+
+                        {/* Animated progress bar */}
+                        <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-1000 ease-linear rounded-full"
+                            style={{ width: `${(qrSecondsLeft / 5) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* QR CODE CONTAINER */}
+                      <div className="relative p-5 bg-white rounded-3xl border-2 border-indigo-200 shadow-xl inline-block group">
+                        {qrDataUrl ? (
+                          <img
+                            src={qrDataUrl}
+                            alt="Mã QR Điểm Danh Động 5s"
+                            className="w-64 h-64 sm:w-72 sm:h-72 object-contain mx-auto rounded-2xl"
+                          />
+                        ) : (
+                          <div className="w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center bg-slate-50 rounded-2xl">
+                            <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
+                          </div>
+                        )}
+
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-12 h-12 rounded-2xl bg-white shadow-lg border border-slate-200 flex items-center justify-center text-indigo-600 font-extrabold text-xs">
+                            UC
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* SECURITY NOTICE */}
+                      <div className="max-w-md text-xs text-slate-500 space-y-1">
+                        <p className="font-semibold text-slate-700 flex items-center justify-center gap-1.5">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                          <span>Bảo mật chống gian lận & điểm danh hộ</span>
+                        </p>
+                        <p>
+                          Mã QR được mã hóa và thay đổi động sau mỗi <strong>5 giây</strong>. Ảnh chụp màn hình gửi từ xa sẽ tự động hết hạn và bị hệ thống từ chối.
+                        </p>
+                      </div>
+
+                      {/* ACTION BUTTONS: KẾT THÚC ĐIỂM DANH & QUÉT THỬ */}
+                      <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                        {isAuthorizedOrganizer(qrBroadcastEvent) && (
+                          <button
+                            type="button"
+                            onClick={() => handleEndAttendanceSession(qrBroadcastEvent)}
+                            className="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-md transition-colors flex items-center gap-2 cursor-pointer"
+                            title="Dừng chiếu mã QR và khóa sổ điểm danh"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Kết thúc Điểm danh & Chốt sổ</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAttendanceModalTab('scan');
+                            setScanResultFeedback(null);
+                          }}
+                          className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors flex items-center gap-2 cursor-pointer"
+                        >
+                          <Scan className="w-4 h-4" />
+                          <span>Mở máy quét điểm danh</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* TAB 2: TÔI ĐIỂM DANH (CAMERA SCANNER & SIMULATOR) */}
+              {attendanceModalTab === 'scan' && (
+                <div className="max-w-xl mx-auto space-y-4 py-2">
+                  {/* Current student badge */}
+                  {currentUser && myMemberRecord && (
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center text-xs">
+                          {myMemberRecord.fullName.split(' ').slice(-1)[0][0]}
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900">{myMemberRecord.fullName}</div>
+                          <div className="text-[11px] text-slate-500 font-mono">
+                            MSSV: {myMemberRecord.mssv} · {myMemberRecord.department}
+                          </div>
+                        </div>
+                      </div>
+
+                      {qrBroadcastEvent.attendees.includes(myMemberRecord.id) ? (
+                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          ✓ Đã có mặt
+                        </span>
+                      ) : qrBroadcastEvent.attendanceClosed ? (
+                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-200 text-slate-600">
+                          Đã đóng điểm danh
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">
+                          Sẵn sàng điểm danh
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {qrBroadcastEvent.attendanceClosed ? (
+                    <div className="p-6 rounded-2xl bg-amber-50 border border-amber-200 text-center space-y-2">
+                      <Lock className="w-8 h-8 text-amber-600 mx-auto" />
+                      <div className="font-bold text-slate-900 text-sm">
+                        Phiên điểm danh này đã kết thúc và chốt sổ
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        Không thể quét mã hoặc bổ sung thêm sinh viên vào danh sách đã chốt.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Scan Method Switch */}
+                      <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl text-xs font-bold text-slate-600">
+                        <button
+                          type="button"
+                          onClick={() => setScanMethod('camera')}
+                          className={`py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                            scanMethod === 'camera' ? 'bg-white text-slate-900 shadow-xs' : 'hover:text-slate-900'
+                          }`}
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                          <span>Quét Camera Trực tiếp</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setScanMethod('manual')}
+                          className={`py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                            scanMethod === 'manual' ? 'bg-white text-slate-900 shadow-xs' : 'hover:text-slate-900'
+                          }`}
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Mô phỏng 1 Chạm</span>
+                        </button>
+                      </div>
+
+                      {/* Camera Viewfinder */}
+                      {scanMethod === 'camera' && (
+                        <div className="relative aspect-video w-full bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner">
+                          <video ref={videoRef} playsInline autoPlay muted className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
+                            <div className="relative w-44 h-44 border-2 border-emerald-400 rounded-2xl">
+                              <span className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-emerald-500" />
+                              <span className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-emerald-500" />
+                              <span className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-emerald-500" />
+                              <span className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-emerald-500" />
+                              <div className="w-full h-0.5 bg-emerald-400 shadow-[0_0_12px_#34d399] animate-pulse absolute top-1/2 -translate-y-1/2" />
+                            </div>
+                          </div>
+                          <div className="absolute bottom-2 text-[10px] text-white/80 bg-slate-900/70 px-3 py-1 rounded-full backdrop-blur-sm">
+                            Hướng camera về phía mã QR đang xoay vòng trên màn hình
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 1-Click Fast Simulation for Testing */}
+                      <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 text-xs space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-indigo-900 flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-amber-500" />
+                            <span>Mô phỏng Quét Nhanh (Dành cho thử nghiệm):</span>
+                          </span>
+                          <span className="text-[10px] text-indigo-600 font-mono">5s Anti-Fraud Check</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (currentQrToken) {
+                              handleVerifyAndCheckIn(currentQrToken);
+                            } else {
+                              const testPayload = JSON.stringify({
+                                app: 'UNICLUB_HUB_CHECKIN',
+                                eventId: qrBroadcastEvent.id,
+                                eventTitle: qrBroadcastEvent.title,
+                                date: qrBroadcastEvent.date,
+                                timestamp: Date.now(),
+                                expiresAt: Date.now() + 5000,
+                                token: `QR-SIM-${Date.now().toString(36)}`,
+                              });
+                              handleVerifyAndCheckIn(testPayload);
+                            }
+                          }}
+                          className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <Scan className="w-4 h-4" />
+                          <span>Xác nhận quét mã QR đang xoay vòng ngay bây giờ</span>
+                        </button>
+                      </div>
+
+                      {/* Feedback banner */}
+                      {scanResultFeedback && (
+                        <div
+                          className={`p-4 rounded-2xl border text-xs flex items-start gap-3 animate-in fade-in ${
+                            scanResultFeedback.type === 'success'
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                              : 'bg-rose-50 border-rose-200 text-rose-900'
+                          }`}
+                        >
+                          {scanResultFeedback.type === 'success' ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                          ) : (
+                            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                          )}
+                          <div className="space-y-0.5">
+                            <div className="font-bold">
+                              {scanResultFeedback.type === 'success' ? 'Thành công!' : 'Lỗi điểm danh'}
+                            </div>
+                            <div className="leading-relaxed">{scanResultFeedback.message}</div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 3: DANH SÁCH (EXACT MATCH TO REFERENCE IMAGE 2) */}
+              {attendanceModalTab === 'roster' && (
+                <div className="space-y-4">
+                  {/* Heading row with pill & print button */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+                    <div>
+                      <div className="flex items-center gap-2.5">
+                        <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                          Danh Sách Tham Dự Chính Thức
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold font-mono">
+                          {qrBroadcastEvent.attendees.length} / {qrBroadcastEvent.expectedAttendees}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {qrBroadcastEvent.attendanceClosed || qrBroadcastEvent.status === 'completed'
+                          ? `Đã được chốt bởi ${qrBroadcastEvent.closedBy || 'Nguyễn Văn An (Chủ nhiệm CLB)'}`
+                          : 'Đang mở phiên điểm danh — danh sách cập nhật trực tiếp thời gian thực'}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handlePrintRoster}
+                      className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold shadow-xs flex items-center gap-2 transition-colors cursor-pointer shrink-0"
+                    >
+                      <Printer className="w-4 h-4" />
+                      <span>In danh sách</span>
+                    </button>
+                  </div>
+
+                  {/* Attendance Table from Image 2 */}
+                  <div className="overflow-x-auto border border-slate-200 rounded-2xl shadow-2xs">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+                        <tr>
+                          <th className="py-3 px-4 w-14 text-center">STT</th>
+                          <th className="py-3 px-4">MSSV</th>
+                          <th className="py-3 px-4">HỌ VÀ TÊN</th>
+                          <th className="py-3 px-4">BAN TRỰC THUỘC</th>
+                          <th className="py-3 px-4">PHƯƠNG THỨC XÁC THỰC</th>
+                          <th className="py-3 px-4 text-center">TRẠNG THÁI</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {qrBroadcastEvent.attendees.length > 0 ? (
+                          qrBroadcastEvent.attendees.map((memId, idx) => {
+                            const member = members.find((m) => m.id === memId);
+                            const mssvStr = member?.mssv || `B2${idx + 1}DCCN${String(idx * 45 + 1).padStart(3, '0')}`;
+                            const nameStr = member?.fullName || `Sinh viên UniClub ${idx + 1}`;
+                            const deptStr = member?.department || qrBroadcastEvent.leadDepartment;
+
+                            return (
+                              <tr key={memId} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="py-3 px-4 text-center font-bold text-slate-400">
+                                  {idx + 1}
+                                </td>
+                                <td className="py-3 px-4 font-mono font-bold text-indigo-600">
+                                  {mssvStr}
+                                </td>
+                                <td className="py-3 px-4 font-bold text-slate-900">
+                                  {nameStr}
+                                </td>
+                                <td className="py-3 px-4 text-slate-700">
+                                  {deptStr}
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                    <span>Quét QR động 5s</span>
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    <span>Có mặt</span>
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="py-8 text-center text-slate-400 italic">
+                              Chưa có sinh viên nào điểm danh trong phiên này.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* MODAL FOOTER (MATCHES REFERENCE 1 & 2) */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 text-emerald-700 font-medium truncate">
+                <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="truncate">Biên bản đã được chốt và lưu trữ vĩnh viễn trên hệ thống.</span>
               </div>
+
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                {isAuthorizedOrganizer(qrBroadcastEvent) && (
-                  <button
-                    type="button"
-                    onClick={() => handleEndAttendanceSession(qrBroadcastEvent)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                    title="Dừng chiếu QR và chốt sổ điểm danh cho sự kiện này"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Kết thúc Điểm danh</span>
-                  </button>
-                )}
+                {/* Red End Attendance Button if session is still active and user is authorized */}
+                {!qrBroadcastEvent.attendanceClosed &&
+                  qrBroadcastEvent.status !== 'completed' &&
+                  isAuthorizedOrganizer(qrBroadcastEvent) && (
+                    <button
+                      type="button"
+                      onClick={() => handleEndAttendanceSession(qrBroadcastEvent)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                      title="Kết thúc và chốt sổ điểm danh cho sự kiện này"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Kết thúc Điểm danh</span>
+                    </button>
+                  )}
+
                 <button
                   type="button"
                   onClick={() => setQrBroadcastEvent(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white transition-colors cursor-pointer"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 transition-colors cursor-pointer shadow-2xs"
                 >
-                  Đóng màn hình
+                  Đóng
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 3. QR SCANNER & ATTENDANCE VERIFICATION MODAL */}
-      {/* ========================================================================= */}
-      {qrScanTargetEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden my-8">
-            {/* HEADER */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-emerald-700 text-white">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center">
-                  <Scan className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold tracking-tight">
-                    Quét Mã QR Điểm Danh Sự Kiện
-                  </h3>
-                  <p className="text-xs text-emerald-100 truncate max-w-xs">
-                    {qrScanTargetEvent.title}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setQrScanTargetEvent(null)}
-                className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* BODY */}
-            <div className="p-6 space-y-4">
-              {/* CURRENT STUDENT IDENTITY */}
-              {currentUser && myMemberRecord && (
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center text-xs">
-                      {myMemberRecord.fullName.split(' ').slice(-1)[0][0]}
-                    </div>
-                    <div>
-                      <div className="font-bold text-slate-900">{myMemberRecord.fullName}</div>
-                      <div className="text-[11px] text-slate-500 font-mono">
-                        MSSV: {myMemberRecord.mssv} · {myMemberRecord.department}
-                      </div>
-                    </div>
-                  </div>
-
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                    Sẵn sàng điểm danh
-                  </span>
-                </div>
-              )}
-
-              {/* SCAN METHOD SWITCH */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl text-xs font-bold text-slate-600">
-                <button
-                  type="button"
-                  onClick={() => setScanMethod('camera')}
-                  className={`py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                    scanMethod === 'camera' ? 'bg-white text-slate-900 shadow-xs' : 'hover:text-slate-900'
-                  }`}
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>Quét Camera Trực tiếp</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScanMethod('manual')}
-                  className={`py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                    scanMethod === 'manual' ? 'bg-white text-slate-900 shadow-xs' : 'hover:text-slate-900'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Mô phỏng 1 Chạm</span>
-                </button>
-              </div>
-
-              {/* CAMERA VIEWFINDER VIEW */}
-              {scanMethod === 'camera' && (
-                <div className="relative aspect-video w-full bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner">
-                  <video
-                    ref={videoRef}
-                    playsInline
-                    autoPlay
-                    muted
-                    className="w-full h-full object-cover"
-                  />
-
-                  {/* CAMERA SCANNING VIEWFINDER RETICLE */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
-                    <div className="relative w-48 h-48 border-2 border-emerald-400 rounded-2xl">
-                      {/* Corner markers */}
-                      <span className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-emerald-500" />
-                      <span className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-emerald-500" />
-                      <span className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-emerald-500" />
-                      <span className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-emerald-500" />
-
-                      {/* Moving laser scan line */}
-                      <div className="w-full h-0.5 bg-emerald-400 shadow-[0_0_12px_#34d399] animate-pulse absolute top-1/2 -translate-y-1/2" />
-                    </div>
-                  </div>
-
-                  <div className="absolute bottom-2 text-[10px] text-white/80 bg-slate-900/60 px-3 py-1 rounded-full backdrop-blur-sm">
-                    Hướng camera về phía mã QR trên màn hình chiếu
-                  </div>
-                </div>
-              )}
-
-              {/* QUICK SCAN SIMULATOR (1-CLICK & ACCESSIBLE FOR DESKTOP / LABS) */}
-              <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 text-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-indigo-900 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span>Mô phỏng Quét Nhanh (Dành cho thử nghiệm):</span>
-                  </span>
-                  <span className="text-[10px] text-indigo-600 font-mono">10s Dynamic Check</span>
-                </div>
-
-                <p className="text-indigo-800 text-[11px] leading-relaxed">
-                  Nhấn nút bên dưới để mô phỏng quét mã QR đang xoay vòng trực tiếp từ ban tổ chức:
-                </p>
-
-                <button
-                  type="button"
-                  onClick={handleSimulateQuickScan}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Scan className="w-4 h-4" />
-                  <span>Xác nhận quét mã QR đang chiếu ngay bây giờ</span>
-                </button>
-              </div>
-
-              {/* FEEDBACK STATUS ALERT */}
-              {scanResultFeedback && (
-                <div
-                  className={`p-4 rounded-2xl border text-xs flex items-start gap-3 animate-in fade-in ${
-                    scanResultFeedback.type === 'success'
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                      : 'bg-rose-50 border-rose-200 text-rose-900'
-                  }`}
-                >
-                  {scanResultFeedback.type === 'success' ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                  )}
-                  <div className="space-y-0.5">
-                    <div className="font-bold">
-                      {scanResultFeedback.type === 'success' ? 'Thành công!' : 'Lỗi điểm danh'}
-                    </div>
-                    <div className="leading-relaxed">{scanResultFeedback.message}</div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* FOOTER */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setQrScanTargetEvent(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white transition-colors"
-              >
-                Hoàn tất
-              </button>
             </div>
           </div>
         </div>
@@ -1696,14 +2055,17 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                     <>
                       <button
                         type="button"
-                        onClick={() => setQrBroadcastEvent(detailModalEvent)}
+                        onClick={() => {
+                          setQrBroadcastEvent(detailModalEvent);
+                          setAttendanceModalTab(detailModalEvent.attendanceClosed ? 'roster' : 'broadcast');
+                        }}
                         className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <QrCode className="w-3.5 h-3.5" />
-                        <span>Chiếu QR Động</span>
+                        <span>{detailModalEvent.attendanceClosed ? 'Xem Điểm Danh' : 'Chiếu QR Động'}</span>
                       </button>
 
-                      {detailModalEvent.status !== 'completed' && (
+                      {!detailModalEvent.attendanceClosed && detailModalEvent.status !== 'completed' && (
                         <button
                           type="button"
                           onClick={() => handleEndAttendanceSession(detailModalEvent)}
@@ -1724,10 +2086,11 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                         onRequireAuth?.();
                         return;
                       }
-                      setQrScanTargetEvent(detailModalEvent);
+                      setQrBroadcastEvent(detailModalEvent);
+                      setAttendanceModalTab('scan');
                       setScanResultFeedback(null);
                     }}
-                    className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                    className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Scan className="w-3.5 h-3.5" />
                     <span>Quét QR</span>
@@ -1888,17 +2251,29 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                       setDetailModalEvent(null);
                       handleOpenEditModal(evToEdit);
                     }}
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 transition-colors flex items-center gap-1.5"
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Sửa</span>
                   </button>
                 )}
 
+                {(canManageEvents || isAuthorizedOrganizer(detailModalEvent)) && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteEventClick(detailModalEvent.id, detailModalEvent.title)}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    title="Xóa sự kiện này khỏi hệ thống"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Xóa</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => setDetailModalEvent(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white transition-colors"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white transition-colors cursor-pointer"
                 >
                   Đóng
                 </button>

@@ -246,6 +246,107 @@ export function calculateAttendanceRate(attendedCount: number, totalExpected: nu
 }
 
 // ============================================================================
+// VIETNAM TIMEZONE (GMT+7) & EVENT AUTO-EXPIRATION UTILITIES
+// ============================================================================
+export function getVietnamNow(): Date {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  return new Date(utc + 3600000 * 7);
+}
+
+export function getVietnamDateString(dateInput?: Date): string {
+  const d = dateInput || getVietnamNow();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function getVietnamTimeString(dateInput?: Date): string {
+  const d = dateInput || getVietnamNow();
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${min}`;
+}
+
+export function formatVietnamDate(dateInput: Date | string = getVietnamNow()): string {
+  if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+    const [y, m, day] = dateInput.split('-');
+    return `${day}/${m}/${y}`;
+  }
+  const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  return d.toLocaleDateString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+export function formatVietnamDateTime(dateInput: Date | string = getVietnamNow()): string {
+  const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  return d.toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Checks if an event is past its scheduled end time based on GMT+7 Vietnam Time.
+ */
+export function isEventPastTime(eventDate: string, eventEndTime: string, nowVN?: Date): boolean {
+  const vnNow = nowVN || getVietnamNow();
+  const todayVN = getVietnamDateString(vnNow);
+  const currentTimeVN = getVietnamTimeString(vnNow);
+
+  if (eventDate < todayVN) {
+    return true;
+  }
+  if (eventDate === todayVN && eventEndTime <= currentTimeVN) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Automatically syncs and updates event statuses against current Vietnam GMT+7 time.
+ * If an event's end time is passed, status becomes 'completed' and attendance is locked.
+ */
+export function syncEventStatusWithVietnamTime(event: ClubEvent, nowVN?: Date): ClubEvent {
+  const isPast = isEventPastTime(event.date, event.endTime, nowVN);
+  if (isPast) {
+    return {
+      ...event,
+      status: 'completed',
+      attendanceClosed: true,
+      closedBy: event.closedBy || 'Hệ thống UniClub (Tự động)',
+      closedByRole: event.closedByRole || 'Hết thời gian tổ chức',
+      closedAt: event.closedAt || formatVietnamDate(nowVN || getVietnamNow()),
+      closedReason: event.closedReason || 'Thời gian sự kiện đã kết thúc theo lịch trình (GMT+7)',
+    };
+  }
+
+  // If today and within startTime to endTime:
+  const vnNow = nowVN || getVietnamNow();
+  const todayVN = getVietnamDateString(vnNow);
+  const currentTimeVN = getVietnamTimeString(vnNow);
+  if (event.date === todayVN && currentTimeVN >= event.startTime && currentTimeVN < event.endTime) {
+    if (event.status !== 'completed') {
+      return {
+        ...event,
+        status: 'ongoing',
+      };
+    }
+  }
+
+  return event;
+}
+
+// ============================================================================
 // 4. AUTHENTICATION & ROLE-BASED ACCESS CONTROL (RBAC) LOGIC
 // ============================================================================
 export interface AuthValidationResult {
