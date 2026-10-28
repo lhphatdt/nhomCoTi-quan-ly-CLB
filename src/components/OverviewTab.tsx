@@ -97,8 +97,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* HERO EXECUTIVE CARD */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-slate-800/80 rounded-2xl p-6 text-white shadow-md">
+      {/* 2. ẢNH THỨ HAI — BANNER CHO TRANG TỔNG QUAN */}
+      <div
+        className="relative overflow-hidden border border-slate-800/80 rounded-2xl p-6 text-white shadow-lg bg-cover bg-center"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(15, 23, 42, 0.94) 0%, rgba(30, 27, 75, 0.88) 52%, rgba(15, 23, 42, 0.55) 100%), url('/assets/uniclub-dashboard-banner.jpg')",
+        }}
+      >
         {/* Subtle ambient glow effect */}
         <div className="absolute -right-20 -top-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -106,18 +112,18 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-300">
-              <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-200 border border-indigo-500/30">
+              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 backdrop-blur-xs">
                 Trung tâm Quản trị
               </span>
               <span>·</span>
-              <span>Hệ thống Điều hành CLB Sinh viên</span>
+              <span className="text-slate-200">Hệ thống Điều hành CLB Sinh viên</span>
               <span>·</span>
-              <span className="text-emerald-400 font-mono">Phiên bản Sản phẩm v1.0</span>
+              <span className="text-emerald-400 font-mono font-bold">Phiên bản Sản phẩm v1.0</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">
               UniClub Hub — Quản lý Câu lạc bộ & Pipeline Tự động hóa CI/CD
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-normal">
               Giải pháp tích hợp toàn diện: Tự động hóa kiểm soát nhân sự, ngăn chặn xung đột lịch phòng học, bảo vệ ngân sách sổ quỹ minh bạch và thiết lập Quality Gate 5 giai đoạn bảo vệ nhánh Production.
             </p>
 

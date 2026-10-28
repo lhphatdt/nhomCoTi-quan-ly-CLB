@@ -727,6 +727,40 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     }
   };
 
+  // End / Close Attendance Session (President & Event Lead Only)
+  const handleEndAttendanceSession = (ev: ClubEvent) => {
+    if (!isAuthorizedOrganizer(ev)) {
+      alert('Chỉ Trưởng ban sự kiện này và Chủ nhiệm CLB mới có thẩm quyền kết thúc phiên điểm danh!');
+      return;
+    }
+    const confirmed = window.confirm(
+      `Xác nhận kết thúc phiên điểm danh cho sự kiện "${ev.title}"?\n\n` +
+      `• Đã điểm danh: ${ev.attendees.length} / ${ev.expectedAttendees} sinh viên\n` +
+      `• Tỷ lệ tham dự: ${Math.round((ev.attendees.length / (ev.expectedAttendees || 1)) * 100)}%\n\n` +
+      `Sau khi kết thúc, màn hình chiếu mã QR động sẽ dừng phát và danh sách tham dự được chốt lưu lại.`
+    );
+    if (!confirmed) return;
+
+    if (onUpdateEvent) {
+      onUpdateEvent(ev.id, {
+        status: 'completed',
+      });
+    }
+
+    if (detailModalEvent && detailModalEvent.id === ev.id) {
+      setDetailModalEvent({
+        ...detailModalEvent,
+        status: 'completed',
+      });
+    }
+
+    if (qrBroadcastEvent && qrBroadcastEvent.id === ev.id) {
+      setQrBroadcastEvent(null);
+    }
+
+    alert(`Đã kết thúc điểm danh cho sự kiện "${ev.title}" thành công!\nTổng cộng có ${ev.attendees.length} sinh viên đã được ghi nhận có mặt.`);
+  };
+
   // Add activity item to list
   const handleAddActivity = () => {
     if (newActivityInput.trim()) {
@@ -1344,17 +1378,30 @@ export const EventsTab: React.FC<EventsTabProps> = ({
             </div>
 
             {/* MODAL FOOTER */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
               <div className="truncate max-w-sm">
                 Thẩm quyền: <strong>{isClubPresident ? 'Chủ nhiệm CLB' : 'Trưởng ban Sự kiện'}</strong>
               </div>
-              <button
-                type="button"
-                onClick={() => setQrBroadcastEvent(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white transition-colors"
-              >
-                Đóng màn hình
-              </button>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                {isAuthorizedOrganizer(qrBroadcastEvent) && (
+                  <button
+                    type="button"
+                    onClick={() => handleEndAttendanceSession(qrBroadcastEvent)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                    title="Dừng chiếu QR và chốt sổ điểm danh cho sự kiện này"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Kết thúc Điểm danh</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setQrBroadcastEvent(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white transition-colors cursor-pointer"
+                >
+                  Đóng màn hình
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1644,16 +1691,30 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   {isAuthorizedOrganizer(detailModalEvent) && (
-                    <button
-                      type="button"
-                      onClick={() => setQrBroadcastEvent(detailModalEvent)}
-                      className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <QrCode className="w-3.5 h-3.5" />
-                      <span>Chiếu QR Động</span>
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setQrBroadcastEvent(detailModalEvent)}
+                        className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>Chiếu QR Động</span>
+                      </button>
+
+                      {detailModalEvent.status !== 'completed' && (
+                        <button
+                          type="button"
+                          onClick={() => handleEndAttendanceSession(detailModalEvent)}
+                          className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                          title="Kết thúc và chốt sổ điểm danh sự kiện này"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Kết thúc Điểm danh</span>
+                        </button>
+                      )}
+                    </>
                   )}
 
                   <button

@@ -469,22 +469,28 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen relative flex flex-col text-slate-900 font-sans selection:bg-indigo-600 selection:text-white bg-slate-50">
+      {/* 1. ẢNH THỨ NHẤT — HÌNH NỀN CHUNG CHO TOÀN WEBSITE */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 opacity-20 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/assets/uniclub-background.jpg')" }}
+      />
+
       {/* TOP BAR CONTRACT: Zone 1 (Brand), Zone 2 (5 Nav Links), Zone 3 (Actions) */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-15 flex items-center justify-between gap-4">
-          {/* ZONE 1: SINGLE-ELEMENT BRAND WORDMARK */}
+          {/* ZONE 1: SINGLE-ELEMENT BRAND WORDMARK WITH OFFICIAL LOGO */}
           <div className="flex items-center gap-3 shrink-0">
             <span
               onClick={() => handleTabClick('overview')}
               className="text-base font-extrabold tracking-tight text-slate-900 cursor-pointer flex items-center gap-2.5 group"
             >
               <img
-                src="/assets/aistudio/logo_23f94b54.jpg"
+                src="/assets/uniclub-logo.png"
                 alt="UniClub Logo"
-                className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200 shadow-xs group-hover:scale-105 transition-transform"
+                className="w-9 h-9 rounded-xl object-contain ring-1 ring-slate-200/80 shadow-xs group-hover:scale-105 transition-transform bg-white"
                 onError={(e) => {
-                  (e.currentTarget as HTMLElement).style.display = 'none';
+                  (e.currentTarget as HTMLImageElement).src = '/assets/aistudio/logo_23f94b54.jpg';
                 }}
               />
               <div className="flex flex-col">
@@ -975,10 +981,15 @@ export default function App() {
       </main>
 
       {/* QUIET FOOTER */}
-      <footer className="mt-auto border-t border-slate-200 py-4 text-center text-xs text-slate-500 bg-white">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="font-mono text-[11px] text-slate-500">
-            UniClub Hub · Nền tảng Điều hành Câu lạc bộ & Pipeline CI/CD Doanh nghiệp · Bản quyền © 2026
+      <footer className="mt-auto border-t border-slate-200 py-4 text-center text-xs text-slate-500 bg-white/95 backdrop-blur-xs">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 font-mono text-[11px] text-slate-600">
+            <img
+              src="/assets/uniclub-logo.png"
+              alt="UniClub Logo"
+              className="w-5 h-5 rounded-md object-contain"
+            />
+            <span>UniClub Hub · Nền tảng Điều hành Câu lạc bộ & Pipeline CI/CD Doanh nghiệp · Bản quyền © 2026</span>
           </div>
           <div className="flex items-center gap-3 text-slate-500 text-[11px]">
             <span>React 19</span>

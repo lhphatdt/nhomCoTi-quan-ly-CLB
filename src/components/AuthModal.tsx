@@ -150,9 +150,9 @@ export function AuthModal({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img
-                src="/assets/aistudio/logo_23f94b54.jpg"
+                src="/assets/uniclub-logo.png"
                 alt="UniClub Logo"
-                className="w-11 h-11 rounded-2xl object-cover ring-1 ring-slate-200 shadow-sm"
+                className="w-11 h-11 rounded-2xl object-contain bg-white p-0.5 ring-1 ring-slate-200 shadow-sm"
                 onError={(e) => {
                   (e.currentTarget as HTMLElement).style.display = 'none';
                 }}

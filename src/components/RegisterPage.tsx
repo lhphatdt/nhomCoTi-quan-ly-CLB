@@ -119,17 +119,17 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         {/* LEFT COLUMN: GUIDELINES & CLUB COMMITMENT */}
         <div className="lg:col-span-5 bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
           <div
-            className="absolute inset-0 opacity-15 pointer-events-none bg-cover bg-center"
-            style={{ backgroundImage: "url('/assets/aistudio/khung_nen_f08530c3.jpg')" }}
+            className="absolute inset-0 opacity-20 pointer-events-none bg-cover bg-center"
+            style={{ backgroundImage: "url('/assets/uniclub-background.jpg')" }}
           />
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-indigo-500/20 blur-3xl" />
 
           <div className="relative z-10 space-y-6">
             <div className="flex items-center gap-3">
               <img
-                src="/assets/aistudio/logo_23f94b54.jpg"
+                src="/assets/uniclub-logo.png"
                 alt="UniClub Logo"
-                className="w-12 h-12 rounded-2xl object-cover ring-2 ring-white/30 shadow-md"
+                className="w-12 h-12 rounded-2xl object-contain bg-white p-1 ring-2 ring-white/30 shadow-md"
                 onError={(e) => {
                   (e.currentTarget as HTMLElement).style.display = 'none';
                 }}
