@@ -1,34 +1,30 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search,
-  UserPlus,
-  Trash2,
-  CheckCircle,
+  Users,
+  CheckCircle2,
   Award,
   Filter,
   AlertCircle,
-  X,
-  Sparkles,
   Phone,
   Mail,
   Building,
-  Check,
-  Lock,
   ShieldCheck,
-  ShieldAlert,
+  UserCheck,
+  Clock,
+  ChevronRight,
+  Sparkles,
+  Lock,
+  Trash2,
+  CheckSquare,
+  Crown,
 } from 'lucide-react';
-import { ClubMember, Department, MemberStatus, AuthUser } from '../types.ts';
-import {
-  validateStudentMember,
-  classifyMemberActivity,
-  formatDateTime,
-  canPerformAction,
-} from '../domain/clubLogic.ts';
+import { ClubMember, Department, AuthUser } from '../types.ts';
+import { classifyMemberActivity } from '../domain/clubLogic.ts';
 
 interface MembersTabProps {
   members: ClubMember[];
-  onAddMember: (newMember: Omit<ClubMember, 'id'>) => void;
-  onApproveMember: (id: string) => void;
+  onApproveMember: (id: string, assignedDept?: Department, assignedRole?: string) => void;
   onAddScore: (id: string, points: number) => void;
   onDeleteMember: (id: string) => void;
   currentUser?: AuthUser | null;
@@ -43,60 +39,57 @@ const DEPARTMENTS: Department[] = [
   'Ban Đối ngoại - Hậu cần',
 ];
 
-const DEPT_INITIALS: Record<Department, string> = {
-  'Ban Chủ nhiệm': 'CN',
-  'Ban Chuyên môn': 'CM',
-  'Ban Truyền thông': 'TT',
-  'Ban Sự kiện': 'SK',
-  'Ban Đối ngoại - Hậu cần': 'ĐN',
-};
+const AVAILABLE_ROLES = [
+  'Thành viên chính thức',
+  'Cộng tác viên tiềm năng',
+  'Phó Trưởng ban',
+  'Trưởng ban Chuyên môn',
+  'Trưởng ban Truyền thông',
+  'Trưởng ban Sự kiện',
+  'Trưởng ban Đối ngoại',
+  'Thủ quỹ CLB (Duyệt chi)',
+  'Phó Chủ nhiệm CLB',
+];
 
-const DEPT_COLORS: Record<Department, { bg: string; text: string }> = {
-  'Ban Chủ nhiệm': { bg: 'bg-indigo-100', text: 'text-indigo-800' },
-  'Ban Chuyên môn': { bg: 'bg-sky-100', text: 'text-sky-800' },
-  'Ban Truyền thông': { bg: 'bg-purple-100', text: 'text-purple-800' },
-  'Ban Sự kiện': { bg: 'bg-amber-100', text: 'text-amber-800' },
-  'Ban Đối ngoại - Hậu cần': { bg: 'bg-emerald-100', text: 'text-emerald-800' },
+const DEPT_COLORS: Record<Department, { bg: string; text: string; border: string }> = {
+  'Ban Chủ nhiệm': { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+  'Ban Chuyên môn': { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+  'Ban Truyền thông': { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+  'Ban Sự kiện': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  'Ban Đối ngoại - Hậu cần': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
 };
 
 export const MembersTab: React.FC<MembersTabProps> = ({
   members,
-  onAddMember,
   onApproveMember,
   onAddScore,
   onDeleteMember,
   currentUser,
   onRequireAuth,
 }) => {
-  const canManageMembers = canPerformAction(currentUser || null, 'manage_members');
+  const isClubPresident = currentUser?.role === 'admin';
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [showAddModal, setShowAddModal] = useState(false);
 
-  // Form State
-  const [formData, setFormData] = useState({
-    mssv: '',
-    fullName: '',
-    email: '',
-    phone: '',
-    department: 'Ban Chuyên môn' as Department,
-    role: 'Ứng viên (Cộng tác viên)',
-    status: 'pending' as MemberStatus,
-  });
+  // Assignment form state for pending members
+  const [assigningData, setAssigningData] = useState<
+    Record<string, { dept: Department; role: string }>
+  >({});
 
-  const [formErrors, setFormErrors] = useState<{
-    mssv?: string;
-    fullName?: string;
-    email?: string;
-    phone?: string;
-  }>({});
+  // Pending members waiting for President's role assignment
+  const pendingMembers = useMemo(() => {
+    return members.filter((m) => m.status === 'pending');
+  }, [members]);
 
-  const [submitFeedback, setSubmitFeedback] = useState<string | null>(null);
+  // Official members
+  const officialMembers = useMemo(() => {
+    return members.filter((m) => m.status === 'official');
+  }, [members]);
 
   // Filtered members list
-  const filteredMembers = useMemo(() => {
-    return members.filter((member) => {
+  const filteredOfficialMembers = useMemo(() => {
+    return officialMembers.filter((member) => {
       const q = searchQuery.toLowerCase().trim();
       const matchQuery =
         !q ||
@@ -105,612 +98,405 @@ export const MembersTab: React.FC<MembersTabProps> = ({
         member.email.toLowerCase().includes(q);
 
       const matchDept = selectedDept === 'all' || member.department === selectedDept;
-      const matchStatus = selectedStatus === 'all' || member.status === selectedStatus;
-
-      return matchQuery && matchDept && matchStatus;
+      return matchQuery && matchDept;
     });
-  }, [members, searchQuery, selectedDept, selectedStatus]);
+  }, [officialMembers, searchQuery, selectedDept]);
 
-  // Demo presets
-  const handleQuickFillValid = () => {
-    const randomSuffix = Math.floor(100 + Math.random() * 900);
-    setFormData({
-      mssv: `B24DCCN${randomSuffix}`,
-      fullName: 'Trịnh Quốc Bảo',
-      email: `bao.trinh${randomSuffix}@university.edu.vn`,
-      phone: '0978665544',
-      department: 'Ban Chuyên môn',
-      role: 'Ứng viên (Cộng tác viên)',
-      status: 'pending',
-    });
-    setFormErrors({});
-    setSubmitFeedback(null);
+  // Initialize assignment default values
+  const getAssignState = (member: ClubMember) => {
+    return (
+      assigningData[member.id] || {
+        dept: member.department,
+        role: 'Thành viên chính thức',
+      }
+    );
   };
 
-  const handleTestDuplicateMssv = () => {
-    const existing = members[0];
-    setFormData({
-      mssv: existing ? existing.mssv : 'B21DCCN001',
-      fullName: 'Nguyễn Văn Thử Nghiệm',
-      email: 'thunghiem@university.edu.vn',
-      phone: '0912345678',
-      department: 'Ban Sự kiện',
-      role: 'Ứng viên (Cộng tác viên)',
-      status: 'pending',
-    });
-    setFormErrors({});
-    setSubmitFeedback(null);
+  const handleSetAssignDept = (memberId: string, dept: Department) => {
+    setAssigningData((prev) => ({
+      ...prev,
+      [memberId]: {
+        ...(prev[memberId] || { dept, role: 'Thành viên chính thức' }),
+        dept,
+      },
+    }));
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSetAssignRole = (memberId: string, role: string) => {
+    setAssigningData((prev) => ({
+      ...prev,
+      [memberId]: {
+        ...(prev[memberId] || { dept: 'Ban Chuyên môn', role }),
+        role,
+      },
+    }));
+  };
 
-    const validation = validateStudentMember({
-      mssv: formData.mssv,
-      fullName: formData.fullName,
-      email: formData.email,
-      phone: formData.phone,
-      existingMembers: members,
-    });
-
-    if (!validation.isValid) {
-      setFormErrors(validation.errors);
-      setSubmitFeedback('Vui lòng sửa các lỗi ràng buộc dữ liệu được đánh dấu đỏ bên dưới.');
+  const handleExecuteApproval = (member: ClubMember) => {
+    if (!isClubPresident) {
+      alert('Chỉ Chủ nhiệm Câu lạc bộ mới có thẩm quyền phân bổ ban và phê duyệt vai trò!');
       return;
     }
+    const state = getAssignState(member);
+    onApproveMember(member.id, state.dept, state.role);
+  };
 
-    onAddMember({
-      mssv: formData.mssv.trim().toUpperCase(),
-      fullName: formData.fullName.trim(),
-      email: formData.email.trim(),
-      phone: formData.phone.trim(),
-      department: formData.department,
-      role: formData.role,
-      joinDate: new Date().toISOString().split('T')[0],
-      status: formData.status,
-      activityScore: 50,
-    });
-
-    setShowAddModal(false);
-    setFormData({
-      mssv: '',
-      fullName: '',
-      email: '',
-      phone: '',
-      department: 'Ban Chuyên môn',
-      role: 'Ứng viên (Cộng tác viên)',
-      status: 'pending',
-    });
-    setFormErrors({});
-    setSubmitFeedback(null);
+  const handleRejectMember = (memberId: string, fullName: string) => {
+    if (!isClubPresident) return;
+    if (confirm(`Bạn có chắc chắn muốn từ chối hồ sơ của sinh viên "${fullName}"?`)) {
+      onDeleteMember(memberId);
+    }
   };
 
   return (
-    <div className="space-y-5">
-      {/* RBAC PERMISSION BANNER */}
-      {canManageMembers ? (
-        <div className="bg-emerald-50 border border-emerald-200/90 rounded-xl p-3 flex items-center justify-between text-xs text-emerald-900 shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="font-bold">Quyền hạn Quản trị: Chủ nhiệm CLB (Admin Toàn quyền)</span>
-              <p className="text-[11px] text-emerald-700 mt-0.5">
-                Bạn có toàn quyền Tiếp nhận hồ sơ, Phê duyệt ứng viên, Cộng điểm rèn luyện và Buộc thôi sinh hoạt.
-              </p>
-            </div>
+    <div className="space-y-6">
+      {/* TOP HEADER */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+              <Users className="w-4 h-4" />
+            </span>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              Quản Trị Nhân Sự & Phân Quyền
+            </h1>
           </div>
-          <span className="hidden sm:inline-block px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 rounded-md border border-emerald-200">
-            RBAC: Full Access
-          </span>
-        </div>
-      ) : (
-        <div className="bg-amber-50 border border-amber-200/90 rounded-xl p-3 flex items-center justify-between text-xs text-amber-900 shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold">
-              <Lock className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="font-bold">
-                Chế độ Xem Danh bạ ({currentUser ? `${currentUser.roleTitle} (${currentUser.fullName})` : 'Khách tham quan / Chưa đăng nhập'})
-              </span>
-              <p className="text-[11px] text-amber-800 mt-0.5">
-                {currentUser
-                  ? 'Theo ma trận phân quyền, chỉ Ban Chủ nhiệm (Admin) mới có quyền can thiệp nhân sự, duyệt đơn và sửa điểm.'
-                  : 'Bạn chưa đăng nhập. Vui lòng đăng nhập với quyền Chủ nhiệm để thao tác thêm/xóa/sửa nhân sự.'}
-              </p>
-            </div>
-          </div>
-          {!currentUser && onRequireAuth && (
-            <button
-              onClick={onRequireAuth}
-              className="px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors shrink-0 shadow-xs"
-            >
-              Đăng nhập ngay
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* TOP CONTROLS & FILTER BAR */}
-      <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          {/* SEARCH INPUT */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm theo MSSV, Họ tên, Email sinh viên..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors"
-            />
-          </div>
-
-          {/* DEPARTMENT FILTER */}
-          <div className="flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
-            <select
-              value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
-              className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-700 font-medium"
-            >
-              <option value="all">Tất cả 5 Ban ({members.length})</option>
-              {DEPARTMENTS.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept} ({members.filter((m) => m.department === dept).length})
-                </option>
-              ))}
-            </select>
-
-            {/* STATUS FILTER */}
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-700 font-medium"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="official">Chính thức</option>
-              <option value="pending">Chờ duyệt hồ sơ</option>
-            </select>
-          </div>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Quy trình tự động hóa: Tài khoản mới tạo tại trang Đăng ký sẽ tự động xuất hiện tại hàng chờ để Chủ nhiệm phê duyệt và phân quyền
+          </p>
         </div>
 
-        {/* PRIMARY ACTION */}
-        <div className="flex items-center gap-2 shrink-0">
-          {canManageMembers ? (
-            <button
-              onClick={() => {
-                setShowAddModal(true);
-                setSubmitFeedback(null);
-                setFormErrors({});
-              }}
-              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-xs"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>Tiếp nhận Hồ sơ Mới</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                if (!currentUser && onRequireAuth) {
-                  onRequireAuth();
-                } else {
-                  alert('Từ chối phân quyền (403): Chỉ Chủ nhiệm CLB (Admin) mới có quyền tiếp nhận hồ sơ nhân sự!');
-                }
-              }}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg transition-colors border border-slate-200"
-              title="Chỉ Chủ nhiệm có quyền tiếp nhận nhân sự"
-            >
-              <Lock className="w-3.5 h-3.5 text-slate-400" />
-              <span>Thêm hồ sơ (Khóa)</span>
-            </button>
-          )}
+        {/* STATS BADGES */}
+        <div className="flex items-center gap-2">
+          <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+            <span className="text-slate-500 font-medium">Chính thức: </span>
+            <span className="font-bold text-slate-900">{officialMembers.length}</span>
+          </div>
+          <div className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
+            pendingMembers.length > 0
+              ? 'bg-amber-50 text-amber-800 border-amber-200'
+              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+          }`}>
+            <Clock className="w-3.5 h-3.5" />
+            <span>Chờ phân quyền: {pendingMembers.length}</span>
+          </div>
         </div>
       </div>
 
-      {/* MEMBERS DATA GRID TABLE */}
-      <div className="bg-white border border-slate-200/90 rounded-xl overflow-hidden shadow-xs">
-        <div className="px-5 py-3.5 border-b border-slate-200/90 flex items-center justify-between text-xs text-slate-600 bg-slate-50/50">
-          <div className="font-bold text-slate-900 flex items-center gap-2">
-            <span>Danh sách Nhân sự CLB</span>
-            <span className="font-mono text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
-              {filteredMembers.length} hồ sơ
+      {/* ========================================================================= */}
+      {/* SECTION 1: HÀNG CHỜ PHÊ DUYỆT & PHÂN QUYỀN TÀI KHOẢN MỚI */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">
+              {pendingMembers.length}
             </span>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                Hồ sơ Sinh viên Mới Đăng ký (Chờ Chủ nhiệm Phân quyền)
+              </h2>
+              <p className="text-xs text-slate-500">
+                Tự động tiếp nhận từ biểu mẫu Đăng ký tài khoản hệ thống (Không cần nhập hồ sơ thủ công)
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono">
-            <span>Chính thức: <strong>{members.filter((m) => m.status === 'official').length}</strong></span>
-            <span>·</span>
-            <span>Chờ duyệt: <strong className="text-amber-700">{members.filter((m) => m.status === 'pending').length}</strong></span>
+
+          {isClubPresident ? (
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0">
+              <Crown className="w-3.5 h-3.5" />
+              <span>Quyền Chủ nhiệm: Có thể phân bổ Ban & Vai trò</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+              <span>Chỉ Chủ nhiệm có quyền phân bổ</span>
+            </span>
+          )}
+        </div>
+
+        {pendingMembers.length > 0 ? (
+          <div className="space-y-3">
+            {pendingMembers.map((member) => {
+              const assignState = getAssignState(member);
+
+              return (
+                <div
+                  key={member.id}
+                  className="p-4 sm:p-5 rounded-2xl border border-amber-200 bg-amber-50/30 hover:border-amber-300 transition-all flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4"
+                >
+                  {/* MEMBER IDENTITY INFO */}
+                  <div className="flex items-start gap-3.5 min-w-[280px]">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-white font-bold flex items-center justify-center text-sm shadow-xs shrink-0">
+                      {member.fullName.split(' ').slice(-1)[0][0]}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-sm sm:text-base text-slate-900">
+                          {member.fullName}
+                        </span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                          Mới tạo tài khoản
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                        <span className="font-mono font-bold text-slate-800">MSSV: {member.mssv}</span>
+                        <span>·</span>
+                        <span className="flex items-center gap-1">
+                          <Mail className="w-3 h-3 text-slate-400" />
+                          <span>{member.email}</span>
+                        </span>
+                        <span>·</span>
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          <span>{member.phone}</span>
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-2">
+                        <span>Nguyện vọng đăng ký: <strong>{member.department}</strong></span>
+                        <span>·</span>
+                        <span>Ngày gửi: {member.joinDate}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PRESIDENT ROLE ASSIGNMENT CONTROLS */}
+                  {isClubPresident ? (
+                    <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-3 lg:pt-0 border-t lg:border-t-0 border-amber-200/60">
+                      {/* ASSIGN DEPARTMENT SELECT */}
+                      <div className="flex flex-col">
+                        <label className="text-[10px] font-bold uppercase text-slate-500 mb-1">
+                          Phân bổ Ban:
+                        </label>
+                        <select
+                          value={assignState.dept}
+                          onChange={(e) => handleSetAssignDept(member.id, e.target.value as Department)}
+                          className="px-2.5 py-1.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs"
+                        >
+                          {DEPARTMENTS.map((dept) => (
+                            <option key={dept} value={dept}>
+                              {dept}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* ASSIGN OFFICIAL ROLE SELECT */}
+                      <div className="flex flex-col">
+                        <label className="text-[10px] font-bold uppercase text-slate-500 mb-1">
+                          Gán Vai trò / Chức vụ:
+                        </label>
+                        <select
+                          value={assignState.role}
+                          onChange={(e) => handleSetAssignRole(member.id, e.target.value)}
+                          className="px-2.5 py-1.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs"
+                        >
+                          {AVAILABLE_ROLES.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* APPROVAL & REJECT BUTTONS */}
+                      <div className="flex items-center gap-1.5 sm:self-end pt-1 sm:pt-0">
+                        <button
+                          type="button"
+                          onClick={() => handleExecuteApproval(member)}
+                          className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                          title="Phê duyệt hồ sơ và phân quyền chính thức"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Duyệt & Gán quyền</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRejectMember(member.id, member.fullName)}
+                          className="p-2 rounded-xl text-rose-600 hover:text-rose-800 hover:bg-rose-100/60 border border-rose-200 transition-colors"
+                          title="Từ chối hồ sơ này"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-amber-800 bg-amber-100/60 px-3.5 py-2 rounded-xl border border-amber-200 flex items-center gap-2">
+                      <Clock className="w-4 h-4 shrink-0 text-amber-600" />
+                      <span>Đang chờ Chủ nhiệm duyệt và phân bổ Ban chuyên môn...</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="py-6 px-4 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-200 space-y-1.5">
+            <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto" />
+            <div className="text-xs font-bold text-slate-800">
+              Không có hồ sơ nào đang chờ duyệt
+            </div>
+            <div className="text-[11px] text-slate-500">
+              Khi sinh viên đăng ký tài khoản mới trên hệ thống, thông tin sẽ tự động hiển thị tại đây để Chủ nhiệm phân ban và bổ nhiệm vai trò.
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 2: DANH SÁCH THÀNH VIÊN CHÍNH THỨC */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900">
+              Danh Sách Thành Viên Chính Thức ({filteredOfficialMembers.length})
+            </h2>
+            <p className="text-xs text-slate-500">
+              Đã được Chủ nhiệm phê duyệt và phân bổ vào 5 Ban chuyên môn
+            </p>
+          </div>
+
+          {/* SEARCH & FILTER */}
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-60">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm tên, MSSV, email..."
+                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+
+            <select
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:bg-white focus:outline-none"
+            >
+              <option value="all">Tất cả ban</option>
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[11px]">
+        {/* OFFICIAL MEMBERS TABLE */}
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
               <tr>
-                <th className="px-4 py-3 font-mono">MSSV</th>
-                <th className="px-4 py-3">Sinh viên</th>
-                <th className="px-4 py-3">Ban & Chức vụ</th>
-                <th className="px-4 py-3">Liên hệ</th>
-                <th className="px-4 py-3 text-center font-mono">Điểm cống hiến</th>
-                <th className="px-4 py-3 text-center">Trạng thái</th>
-                <th className="px-4 py-3 text-right">Thao tác</th>
+                <th className="py-3 px-4">Sinh viên / MSSV</th>
+                <th className="py-3 px-4">Ban phụ trách</th>
+                <th className="py-3 px-4">Chức vụ / Vai trò</th>
+                <th className="py-3 px-4">Điểm rèn luyện</th>
+                <th className="py-3 px-4">Ngày gia nhập</th>
+                <th className="py-3 px-4 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredMembers.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-slate-400">
-                    Không tìm thấy thành viên nào phù hợp với bộ lọc tìm kiếm.
-                  </td>
-                </tr>
-              ) : (
-                filteredMembers.map((member) => {
-                  const classification = classifyMemberActivity(member.activityScore);
-                  const isOfficial = member.status === 'official';
-                  const deptColor = DEPT_COLORS[member.department] || {
-                    bg: 'bg-slate-100',
-                    text: 'text-slate-800',
-                  };
+              {filteredOfficialMembers.map((member) => {
+                const activity = classifyMemberActivity(member.activityScore);
+                const deptStyle = DEPT_COLORS[member.department] || DEPT_COLORS['Ban Chuyên môn'];
 
-                  return (
-                    <tr
-                      key={member.id}
-                      className="hover:bg-slate-50/80 transition-colors group"
-                    >
-                      {/* MSSV */}
-                      <td className="px-4 py-3 font-mono font-bold text-slate-900 tabular-nums">
-                        {member.mssv}
-                      </td>
-
-                      {/* Full Name & Avatar Initial */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0 ${deptColor.bg} ${deptColor.text}`}
-                          >
-                            {member.fullName.charAt(0)}
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-900">{member.fullName}</div>
-                            <div className="text-[11px] text-slate-400 font-mono">
-                              Gia nhập: {formatDateTime(member.joinDate)}
-                            </div>
+                return (
+                  <tr key={member.id} className="hover:bg-slate-50/70 transition-colors">
+                    {/* NAME & MSSV */}
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 font-extrabold flex items-center justify-center text-xs shrink-0">
+                          {member.fullName.split(' ').slice(-1)[0][0]}
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900 text-xs">{member.fullName}</div>
+                          <div className="font-mono text-[11px] text-slate-500">
+                            {member.mssv} · {member.email}
                           </div>
                         </div>
-                      </td>
+                      </div>
+                    </td>
 
-                      {/* Department & Role */}
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-slate-800">{member.department}</div>
-                        <div className="text-[11px] text-slate-500 font-medium">
-                          {member.role}
-                        </div>
-                      </td>
+                    {/* DEPARTMENT */}
+                    <td className="py-3 px-4">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${deptStyle.bg} ${deptStyle.text} ${deptStyle.border}`}
+                      >
+                        {member.department}
+                      </span>
+                    </td>
 
-                      {/* Contact Info */}
-                      <td className="px-4 py-3 font-mono text-[11px] text-slate-600">
-                        <div className="flex items-center gap-1.5 truncate max-w-[200px]">
-                          <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span className="truncate">{member.email}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-slate-500 mt-0.5 tabular-nums">
-                          <Phone className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span>{member.phone}</span>
-                        </div>
-                      </td>
+                    {/* ROLE */}
+                    <td className="py-3 px-4">
+                      <span className="font-semibold text-slate-800 text-xs">
+                        {member.role}
+                      </span>
+                    </td>
 
-                      {/* Activity Score & Classification */}
-                      <td className="px-4 py-3 text-center">
-                        <div className="font-mono tabular-nums font-extrabold text-slate-900">
-                          {member.activityScore} pts
-                        </div>
-                        <div
-                          className={`text-[10px] font-semibold ${
-                            member.activityScore >= 85
-                              ? 'text-emerald-700'
-                              : member.activityScore >= 60
-                              ? 'text-indigo-700'
-                              : 'text-amber-700'
+                    {/* SCORE */}
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-slate-900">
+                          {member.activityScore} đ
+                        </span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                            activity.level === 'Xuất sắc'
+                              ? 'bg-purple-100 text-purple-700'
+                              : activity.level === 'Tích cực'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-slate-100 text-slate-600'
                           }`}
                         >
-                          {classification.level}
-                        </div>
-                      </td>
+                          {activity.level}
+                        </span>
 
-                      {/* Status */}
-                      <td className="px-4 py-3 text-center">
-                        {isOfficial ? (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                            Chính thức
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
-                            Chờ duyệt
-                          </span>
+                        {isClubPresident && (
+                          <button
+                            type="button"
+                            onClick={() => onAddScore(member.id, 5)}
+                            className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            title="Cộng 5 điểm rèn luyện"
+                          >
+                            +5đ
+                          </button>
                         )}
-                      </td>
+                      </div>
+                    </td>
 
-                      {/* Actions */}
-                      <td className="px-4 py-3 text-right">
-                        {canManageMembers ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            {/* Approve Pending */}
-                            {!isOfficial && (
-                              <button
-                                onClick={() => onApproveMember(member.id)}
-                                title="Duyệt ứng viên thành thành viên chính thức"
-                                className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-md transition-colors"
-                              >
-                                Duyệt
-                              </button>
-                            )}
+                    {/* JOIN DATE */}
+                    <td className="py-3 px-4 text-slate-500 font-mono text-[11px]">
+                      {member.joinDate}
+                    </td>
 
-                            {/* +5 Score */}
-                            <button
-                              onClick={() => onAddScore(member.id, 5)}
-                              title="Cộng 5 điểm cống hiến phong trào"
-                              className="px-2 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors font-mono"
-                            >
-                              +5đ
-                            </button>
-
-                            {/* Delete */}
-                            <button
-                              onClick={() => {
-                                if (
-                                  confirm(
-                                    `Bạn có chắc chắn muốn xóa hồ sơ sinh viên ${member.fullName} (${member.mssv}) khỏi danh sách CLB?`
-                                  )
-                                ) {
-                                  onDeleteMember(member.id);
-                                }
-                              }}
-                              title="Xóa hồ sơ nhân sự"
-                              className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors rounded hover:bg-rose-50"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium italic">
-                            <Lock className="w-3 h-3 text-slate-400" />
-                            Chỉ xem
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
+                    {/* ACTIONS */}
+                    <td className="py-3 px-4 text-right">
+                      {isClubPresident && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Xóa thành viên "${member.fullName}" khỏi danh sách?`)) {
+                              onDeleteMember(member.id);
+                            }
+                          }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          title="Xóa thành viên"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* MODAL: ADD NEW MEMBER */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  Tiếp nhận Hồ sơ Đăng ký Thành viên CLB
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Kiểm tra toàn vẹn định dạng MSSV, Email trường và chống đăng ký trùng
-                </p>
-              </div>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Quick Demo Test Buttons */}
-            <div className="mt-3.5 p-3 bg-slate-50 border border-slate-200/90 rounded-xl space-y-2">
-              <div className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Dữ liệu mẫu thử nghiệm nhanh (Preset Scenarios):</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleQuickFillValid}
-                  className="px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors"
-                >
-                  ✓ Điền nhanh hồ sơ hợp lệ
-                </button>
-                <button
-                  type="button"
-                  onClick={handleTestDuplicateMssv}
-                  className="px-2.5 py-1 text-xs font-semibold text-rose-800 bg-rose-100 hover:bg-rose-200 rounded-lg transition-colors"
-                >
-                  ⚠ Test bắt lỗi trùng MSSV
-                </button>
-              </div>
-            </div>
-
-            {submitFeedback && (
-              <div className="mt-3.5 p-2.5 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{submitFeedback}</span>
-              </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleFormSubmit} className="mt-4 space-y-3.5 text-xs">
-              {/* MSSV */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Mã số Sinh viên (MSSV) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.mssv}
-                  onChange={(e) => {
-                    setFormData({ ...formData, mssv: e.target.value.toUpperCase() });
-                    if (formErrors.mssv) setFormErrors({ ...formErrors, mssv: undefined });
-                  }}
-                  placeholder="Ví dụ: B24DCCN999"
-                  className={`w-full px-3 py-2 font-mono text-xs border rounded-lg focus:outline-none ${
-                    formErrors.mssv
-                      ? 'border-rose-300 bg-rose-50/50 text-rose-900 focus:border-rose-500'
-                      : 'border-slate-200 bg-white focus:border-indigo-500'
-                  }`}
-                />
-                {formErrors.mssv && (
-                  <p className="mt-1 text-[11px] text-rose-600 font-semibold">{formErrors.mssv}</p>
-                )}
-                <p className="mt-0.5 text-[10px] text-slate-400 font-mono">
-                  Yêu cầu: Từ 6 đến 10 ký tự chữ và số, không trùng lặp trong CLB.
-                </p>
-              </div>
-
-              {/* Full Name */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Họ và Tên Sinh viên <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.fullName}
-                  onChange={(e) => {
-                    setFormData({ ...formData, fullName: e.target.value });
-                    if (formErrors.fullName) setFormErrors({ ...formErrors, fullName: undefined });
-                  }}
-                  placeholder="Ví dụ: Trịnh Quốc Bảo"
-                  className={`w-full px-3 py-2 text-xs border rounded-lg focus:outline-none ${
-                    formErrors.fullName
-                      ? 'border-rose-300 bg-rose-50/50 text-rose-900 focus:border-rose-500'
-                      : 'border-slate-200 bg-white focus:border-indigo-500'
-                  }`}
-                />
-                {formErrors.fullName && (
-                  <p className="mt-1 text-[11px] text-rose-600 font-semibold">
-                    {formErrors.fullName}
-                  </p>
-                )}
-              </div>
-
-              {/* Email & Phone */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Email Sinh viên <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => {
-                      setFormData({ ...formData, email: e.target.value });
-                      if (formErrors.email) setFormErrors({ ...formErrors, email: undefined });
-                    }}
-                    placeholder="email@university.edu.vn"
-                    className={`w-full px-3 py-2 font-mono text-xs border rounded-lg focus:outline-none ${
-                      formErrors.email
-                        ? 'border-rose-300 bg-rose-50/50 text-rose-900 focus:border-rose-500'
-                        : 'border-slate-200 bg-white focus:border-indigo-500'
-                    }`}
-                  />
-                  {formErrors.email && (
-                    <p className="mt-1 text-[11px] text-rose-600 font-semibold">
-                      {formErrors.email}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Số Điện thoại (10 số) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => {
-                      setFormData({ ...formData, phone: e.target.value });
-                      if (formErrors.phone) setFormErrors({ ...formErrors, phone: undefined });
-                    }}
-                    placeholder="0912345678"
-                    className={`w-full px-3 py-2 font-mono text-xs border rounded-lg focus:outline-none ${
-                      formErrors.phone
-                        ? 'border-rose-300 bg-rose-50/50 text-rose-900 focus:border-rose-500'
-                        : 'border-slate-200 bg-white focus:border-indigo-500'
-                    }`}
-                  />
-                  {formErrors.phone && (
-                    <p className="mt-1 text-[11px] text-rose-600 font-semibold">
-                      {formErrors.phone}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Department & Role */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Ban Nguyện vọng <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={formData.department}
-                    onChange={(e) =>
-                      setFormData({ ...formData, department: e.target.value as Department })
-                    }
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500 font-medium"
-                  >
-                    {DEPARTMENTS.map((dept) => (
-                      <option key={dept} value={dept}>
-                        {dept}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Trạng thái Hồ sơ
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value as MemberStatus })
-                    }
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500 font-medium"
-                  >
-                    <option value="pending">Ứng viên chờ duyệt</option>
-                    <option value="official">Thành viên chính thức</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-3.5 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg"
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-xs"
-                >
-                  Lưu Hồ sơ Nhân sự
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

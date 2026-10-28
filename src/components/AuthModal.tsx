@@ -117,13 +117,13 @@ export function AuthModal({
       phone: registerData.phone.trim(),
       department: registerData.department,
       role: 'member',
-      roleTitle: 'Hội viên',
-      status: 'official',
+      roleTitle: 'Ứng viên (Chờ phân quyền)',
+      status: 'pending',
       password: registerData.password,
     };
 
     onRegisterNewUser(newUser);
-    setRegisterSuccess('Đăng ký thành công! Bạn có thể chuyển sang đăng nhập ngay.');
+    setRegisterSuccess('Đăng ký thành công! Hồ sơ đã được đưa vào bảng nhân sự và đang chờ Chủ nhiệm phân quyền.');
     setRegisterData({
       fullName: '',
       mssv: '',

@@ -95,14 +95,14 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         phone: formData.phone.trim(),
         department: formData.department,
         role: 'member', // Enforced: Cannot self-assign admin/treasurer
-        roleTitle: 'Hội viên mới',
-        status: 'official',
+        roleTitle: 'Ứng viên (Chờ phân quyền)',
+        status: 'pending',
         password: formData.password,
       };
 
       onRegisterNewUser(newUser);
       setIsLoading(false);
-      setSuccessMsg('Đăng ký tài khoản thành công! Bạn có thể sử dụng thông tin này để đăng nhập ngay.');
+      setSuccessMsg('Đăng ký tài khoản thành công! Hồ sơ của bạn đã được thêm vào hệ thống nhân sự và đang chờ Chủ nhiệm CLB phê duyệt & phân quyền.');
 
       // Clear sensitive fields
       setFormData((prev) => ({

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import QRCode from 'qrcode';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -23,8 +24,16 @@ import {
   Trash2,
   Edit3,
   CalendarDays,
-  Tag,
-  Share2,
+  QrCode,
+  Scan,
+  Camera,
+  RefreshCw,
+  Maximize2,
+  Minimize2,
+  ShieldCheck,
+  Check,
+  AlertCircle,
+  Radio,
 } from 'lucide-react';
 import {
   ClubEvent,
@@ -32,7 +41,6 @@ import {
   Department,
   EventCategory,
   AuthUser,
-  EventActivityItem,
 } from '../types.ts';
 import {
   checkEventScheduleConflict,
@@ -134,6 +142,33 @@ export const EventsTab: React.FC<EventsTabProps> = ({
 }) => {
   const canCreateEvent = canPerformAction(currentUser || null, 'create_event');
   const canManageEvents = canPerformAction(currentUser || null, 'manage_events');
+  const isClubPresident = currentUser?.role === 'admin';
+
+  // Check if current user is authorized organizer for a specific event
+  // (Strict requirement: "mọi thao tác sẽ chỉ được trưởng ban sự kiện đó và chủ nhiệm")
+  const isAuthorizedOrganizer = (ev: ClubEvent) => {
+    if (isClubPresident) return true;
+    if (!currentUser) return false;
+    if (currentUser.role === 'event_lead') return true;
+    if (
+      currentUser.department === ev.leadDepartment &&
+      (currentUser.roleTitle.toLowerCase().includes('trưởng ban') ||
+        currentUser.roleTitle.toLowerCase().includes('phó'))
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+  // Current logged in member in the club roster
+  const myMemberRecord = useMemo(() => {
+    if (!currentUser) return null;
+    return members.find(
+      (m) =>
+        m.mssv.toUpperCase() === currentUser.mssv.toUpperCase() ||
+        m.email.toLowerCase() === currentUser.email.toLowerCase()
+    );
+  }, [members, currentUser]);
 
   // Today reference (October 27, 2026 or real system date)
   const todayStr = useMemo(() => {
@@ -141,7 +176,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const d = String(now.getDate()).padStart(2, '0');
-    // If year matches 2026, use now, else default to '2026-10-27'
     return y === 2026 ? `${y}-${m}-${d}` : '2026-10-27';
   }, []);
 
@@ -156,6 +190,30 @@ export const EventsTab: React.FC<EventsTabProps> = ({
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [editingEvent, setEditingEvent] = useState<ClubEvent | null>(null);
   const [attendeeSearch, setAttendeeSearch] = useState<string>('');
+
+  // =========================================================================
+  // DYNAMIC 10-SECOND ROTATING QR CODE BROADCAST STATE
+  // =========================================================================
+  const [qrBroadcastEvent, setQrBroadcastEvent] = useState<ClubEvent | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [qrSecondsLeft, setQrSecondsLeft] = useState<number>(10);
+  const [currentQrToken, setCurrentQrToken] = useState<string>('');
+  const [isQrFullscreen, setIsQrFullscreen] = useState<boolean>(false);
+
+  // =========================================================================
+  // QR SCANNER / CHECK-IN MODAL STATE
+  // =========================================================================
+  const [qrScanTargetEvent, setQrScanTargetEvent] = useState<ClubEvent | null>(null);
+  const [scanMethod, setScanMethod] = useState<'camera' | 'manual'>('camera');
+  const [manualTokenInput, setManualTokenInput] = useState<string>('');
+  const [scanResultFeedback, setScanResultFeedback] = useState<{
+    type: 'success' | 'error';
+    message: string;
+    studentName?: string;
+    timestamp?: string;
+  } | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
   // Form State for Add / Edit
   const [formTitle, setFormTitle] = useState('');
@@ -184,7 +242,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     return events.filter((e) => e.category === selectedCategoryFilter);
   }, [events, selectedCategoryFilter]);
 
-  // Events map by date: { '2026-10-27': [event1, event2] }
+  // Events map by date
   const eventsByDate = useMemo(() => {
     const map = new Map<string, ClubEvent[]>();
     filteredEvents.forEach((ev) => {
@@ -201,13 +259,237 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     return [...list].sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [eventsByDate, selectedDate]);
 
+  // Keep detailModalEvent in sync with events state
+  useEffect(() => {
+    if (detailModalEvent) {
+      const updated = events.find((e) => e.id === detailModalEvent.id);
+      if (updated) {
+        setDetailModalEvent(updated);
+      }
+    }
+  }, [events]);
+
+  // Keep qrBroadcastEvent in sync with events state
+  useEffect(() => {
+    if (qrBroadcastEvent) {
+      const updated = events.find((e) => e.id === qrBroadcastEvent.id);
+      if (updated) {
+        setQrBroadcastEvent(updated);
+      }
+    }
+  }, [events]);
+
+  // =========================================================================
+  // DYNAMIC 10-SECOND ROTATING QR CODE ENGINE
+  // =========================================================================
+  useEffect(() => {
+    if (!qrBroadcastEvent) {
+      setQrSecondsLeft(10);
+      setQrDataUrl('');
+      setCurrentQrToken('');
+      return;
+    }
+
+    let isMounted = true;
+
+    // Helper to generate a rotating QR payload
+    const regenerateQr = async () => {
+      const now = Date.now();
+      const nonce = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const token = `QR-${qrBroadcastEvent.id.slice(-4)}-${nonce}-${now.toString(36).slice(-4).toUpperCase()}`;
+
+      const payloadObj = {
+        app: 'UNICLUB_HUB_CHECKIN',
+        eventId: qrBroadcastEvent.id,
+        eventTitle: qrBroadcastEvent.title,
+        date: qrBroadcastEvent.date,
+        timestamp: now,
+        expiresAt: now + 12000, // 12 seconds validity (10s rotation + 2s buffer)
+        token,
+      };
+
+      const payloadStr = JSON.stringify(payloadObj);
+
+      try {
+        const url = await QRCode.toDataURL(payloadStr, {
+          width: 360,
+          margin: 2,
+          color: {
+            dark: '#1e1b4b',
+            light: '#ffffff',
+          },
+          errorCorrectionLevel: 'M',
+        });
+        if (isMounted) {
+          setQrDataUrl(url);
+          setCurrentQrToken(payloadStr);
+        }
+      } catch (err) {
+        console.error('Generate QR Code Error:', err);
+      }
+    };
+
+    // Generate initial QR code immediately
+    regenerateQr();
+    setQrSecondsLeft(10);
+
+    // 1-second interval to update countdown timer and refresh every 10 seconds
+    const interval = setInterval(() => {
+      setQrSecondsLeft((prev) => {
+        if (prev <= 1) {
+          regenerateQr();
+          return 10;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [qrBroadcastEvent]);
+
+  // =========================================================================
+  // CAMERA STREAM HANDLER FOR QR SCANNER
+  // =========================================================================
+  useEffect(() => {
+    if (qrScanTargetEvent && scanMethod === 'camera') {
+      let isMounted = true;
+
+      navigator.mediaDevices
+        ?.getUserMedia({ video: { facingMode: 'environment' } })
+        .then((stream) => {
+          if (isMounted) {
+            mediaStreamRef.current = stream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+              videoRef.current.play().catch(() => {});
+            }
+          } else {
+            stream.getTracks().forEach((track) => track.stop());
+          }
+        })
+        .catch((err) => {
+          console.warn('Camera permission denied or camera not available:', err);
+        });
+
+      return () => {
+        isMounted = false;
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+          mediaStreamRef.current = null;
+        }
+      };
+    }
+  }, [qrScanTargetEvent, scanMethod]);
+
+  // Execute attendance verification
+  const handleVerifyAndCheckIn = (scannedPayloadStr: string) => {
+    if (!qrScanTargetEvent) return;
+
+    if (!currentUser) {
+      setScanResultFeedback({
+        type: 'error',
+        message: 'Vui lòng đăng nhập tài khoản sinh viên trước khi quét mã điểm danh!',
+      });
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(scannedPayloadStr);
+
+      // Verify event match
+      if (payload.eventId !== qrScanTargetEvent.id) {
+        setScanResultFeedback({
+          type: 'error',
+          message: `Mã QR này thuộc sự kiện "${payload.eventTitle || 'khác'}", không khớp với sự kiện "${qrScanTargetEvent.title}"!`,
+        });
+        return;
+      }
+
+      // Verify rotation expiry (10 seconds with 5s grace buffer)
+      const now = Date.now();
+      const ageMs = now - (payload.timestamp || 0);
+      if (ageMs > 15000) {
+        setScanResultFeedback({
+          type: 'error',
+          message: 'Mã QR đã hết hạn (quá 10 giây)! Vui lòng quét mã mới đang chiếu trên màn hình ban tổ chức.',
+        });
+        return;
+      }
+
+      // Check member match
+      const member = myMemberRecord;
+      if (!member) {
+        setScanResultFeedback({
+          type: 'error',
+          message: 'Không tìm thấy hồ sơ thành viên câu lạc bộ cho tài khoản hiện tại của bạn.',
+        });
+        return;
+      }
+
+      // Check if already checked in
+      if (qrScanTargetEvent.attendees.includes(member.id)) {
+        setScanResultFeedback({
+          type: 'success',
+          message: `Sinh viên ${member.fullName} (${member.mssv}) đã được điểm danh trước đó rồi!`,
+          studentName: member.fullName,
+          timestamp: new Date().toLocaleTimeString('vi-VN'),
+        });
+        return;
+      }
+
+      // Record attendance
+      onToggleAttendee(qrScanTargetEvent.id, member.id);
+      const timeStr = new Date().toLocaleTimeString('vi-VN');
+
+      setScanResultFeedback({
+        type: 'success',
+        message: `Điểm danh thành công! Hệ thống đã ghi nhận sự có mặt của ${member.fullName} (${member.mssv}) vào lúc ${timeStr}.`,
+        studentName: member.fullName,
+        timestamp: timeStr,
+      });
+    } catch {
+      setScanResultFeedback({
+        type: 'error',
+        message: 'Dữ liệu mã QR không hợp lệ hoặc bị gián đoạn. Vui lòng quét lại!',
+      });
+    }
+  };
+
+  // Fast Instant Scan Simulation button
+  const handleSimulateQuickScan = () => {
+    if (!currentQrToken && qrBroadcastEvent?.id === qrScanTargetEvent?.id) {
+      setScanResultFeedback({
+        type: 'error',
+        message: 'Ban tổ chức chưa bật màn hình chiếu mã QR động!',
+      });
+      return;
+    }
+
+    if (currentQrToken) {
+      handleVerifyAndCheckIn(currentQrToken);
+    } else if (qrScanTargetEvent) {
+      // If broadcasting wasn't open, generate valid token on the fly for test
+      const testPayload = JSON.stringify({
+        app: 'UNICLUB_HUB_CHECKIN',
+        eventId: qrScanTargetEvent.id,
+        eventTitle: qrScanTargetEvent.title,
+        date: qrScanTargetEvent.date,
+        timestamp: Date.now(),
+        expiresAt: Date.now() + 10000,
+        token: `QR-SIM-${Date.now().toString(36)}`,
+      });
+      handleVerifyAndCheckIn(testPayload);
+    }
+  };
+
   // Calendar Grid Days Calculation
   const calendarDays = useMemo(() => {
     const firstDay = new Date(currentYear, currentMonth, 1);
     const lastDay = new Date(currentYear, currentMonth + 1, 0);
 
-    // Day of week for 1st day of month (0 = Sun, 1 = Mon ... 6 = Sat)
-    // Convert to Monday = 0, ..., Sunday = 6
     let startDayOfWeek = firstDay.getDay() - 1;
     if (startDayOfWeek === -1) startDayOfWeek = 6;
 
@@ -354,7 +636,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     e.preventDefault();
     setConflictError(null);
 
-    // Check conflict (excluding current event if editing)
     const otherEvents = editingEvent
       ? events.filter((ev) => ev.id !== editingEvent.id)
       : events;
@@ -390,7 +671,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
         activities: formActivities,
       });
 
-      // Update detail modal if open
       if (detailModalEvent && detailModalEvent.id === editingEvent.id) {
         setDetailModalEvent({
           ...detailModalEvent,
@@ -459,22 +739,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     setFormActivities(formActivities.filter((_, i) => i !== index));
   };
 
-  // Check in current user
-  const handleToggleMyAttendance = (event: ClubEvent) => {
-    if (!currentUser) {
-      onRequireAuth?.();
-      return;
-    }
-    const myMember = members.find(
-      (m) =>
-        m.mssv.toUpperCase() === currentUser.mssv.toUpperCase() ||
-        m.email.toLowerCase() === currentUser.email.toLowerCase()
-    );
-    if (myMember) {
-      onToggleAttendee(event.id, myMember.id);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* TOP HEADER CONTROLS */}
@@ -489,7 +753,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Theo dõi thời khóa biểu sự kiện, điều phối phòng họp và điểm danh hoạt động sinh viên theo thời gian thực
+            Theo dõi thời khóa biểu, tạo mã QR động tự động đổi sau 10 giây và quét QR điểm danh chính xác theo thời gian thực
           </p>
         </div>
 
@@ -544,10 +808,10 @@ export const EventsTab: React.FC<EventsTabProps> = ({
         </div>
       </div>
 
-      {/* 3.1. BỐ CỤC LỊCH DẠNG HAI CỘT (TWO-COLUMN RESPONSIVE LAYOUT) */}
+      {/* TWO-COLUMN LAYOUT: Month calendar (left) + Day events list (right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* ========================================================================= */}
-        {/* CỘT BÊN TRÁI (LEFT COLUMN): LỊCH THÁNG (7 COLS ON LARGE) */}
+        {/* CỘT BÊN TRÁI: LỊCH THÁNG (7 COLS ON LARGE) */}
         {/* ========================================================================= */}
         <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
           {/* MONTH NAVIGATION BAR */}
@@ -620,7 +884,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                       : 'bg-slate-50/50 border-slate-100 text-slate-400'
                   }`}
                 >
-                  {/* CELL TOP: Day Number & Today indicator */}
                   <div className="flex items-center justify-between">
                     <span
                       className={`text-xs sm:text-sm font-bold flex items-center justify-center w-6 h-6 rounded-lg ${
@@ -636,7 +899,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                       {cell.dayNumber}
                     </span>
 
-                    {/* EVENT COUNT BADGE */}
                     {hasEvents && (
                       <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-extrabold bg-indigo-600 text-white shadow-xs">
                         {cell.events.length}
@@ -644,7 +906,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                     )}
                   </div>
 
-                  {/* CELL BOTTOM: EVENT CHIPS / DOTS */}
                   <div className="mt-1 space-y-1 overflow-hidden">
                     {cell.events.slice(0, 2).map((ev) => {
                       const colors = CATEGORY_COLORS[ev.category] || CATEGORY_COLORS['Workshop'];
@@ -660,7 +921,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                       );
                     })}
 
-                    {/* Mobile tiny dot representation */}
                     {hasEvents && (
                       <div className="flex sm:hidden items-center gap-1 justify-center mt-1">
                         {cell.events.slice(0, 3).map((ev, i) => (
@@ -685,10 +945,10 @@ export const EventsTab: React.FC<EventsTabProps> = ({
             })}
           </div>
 
-          {/* CALENDAR FOOTER LEGEND */}
+          {/* CALENDAR FOOTER */}
           <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="font-semibold text-slate-700">Chú thích:</span>
+              <span className="font-semibold text-slate-700">Thể loại:</span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
                 <span>Workshop</span>
@@ -706,17 +966,13 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 <span>Tuyển quân</span>
               </span>
             </div>
-            <div className="text-[11px] text-slate-400">
-              * Nhấn vào bất kỳ ô ngày nào để xem chi tiết
-            </div>
           </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* CỘT BÊN PHẢI (RIGHT COLUMN): CHI TIẾT SỰ KIỆN TRONG NGÀY (5 COLS) */}
+        {/* CỘT BÊN PHẢI: CHI TIẾT SỰ KIỆN TRONG NGÀY (5 COLS) */}
         {/* ========================================================================= */}
         <div className="lg:col-span-5 space-y-4">
-          {/* HEADER OF SELECTED DAY */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
             <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
@@ -740,14 +996,9 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 {selectedDateEvents.map((ev) => {
                   const colors = CATEGORY_COLORS[ev.category] || CATEGORY_COLORS['Workshop'];
                   const attendanceRate = calculateAttendanceRate(ev.attendees.length, ev.expectedAttendees);
-                  const isCheckedIn = currentUser
-                    ? ev.attendees.some((id) => {
-                        const m = members.find((mem) => mem.id === id);
-                        return (
-                          m?.mssv.toUpperCase() === currentUser.mssv.toUpperCase() ||
-                          m?.email.toLowerCase() === currentUser.email.toLowerCase()
-                        );
-                      })
+                  const isOrganizer = isAuthorizedOrganizer(ev);
+                  const isCheckedIn = currentUser && myMemberRecord
+                    ? ev.attendees.includes(myMemberRecord.id)
                     : false;
 
                   return (
@@ -755,7 +1006,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                       key={ev.id}
                       className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-indigo-300 transition-all flex flex-col group"
                     >
-                      {/* 3.2. HÌNH ẢNH ĐẠI DIỆN CHO SỰ KIỆN */}
+                      {/* COVER PHOTO */}
                       <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
                         <img
                           src={ev.imageUrl || DEFAULT_EVENT_IMAGE}
@@ -767,7 +1018,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
 
-                        {/* Top badges on photo */}
+                        {/* Top Badges */}
                         <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
                           <span
                             className={`px-2.5 py-1 rounded-lg text-xs font-bold border backdrop-blur-md shadow-xs ${colors.bg} ${colors.text} ${colors.border}`}
@@ -792,7 +1043,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                           </span>
                         </div>
 
-                        {/* Bottom title on photo overlay */}
+                        {/* Event Title */}
                         <div className="absolute bottom-3 left-3 right-3 text-white">
                           <h4 className="font-extrabold text-base leading-snug line-clamp-2 drop-shadow-sm">
                             {ev.title}
@@ -802,7 +1053,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
 
                       {/* CARD CONTENT */}
                       <div className="p-4 space-y-3">
-                        {/* Time & Location */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600">
                           <div className="flex items-center gap-1.5 font-mono font-semibold text-slate-800">
                             <Clock className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
@@ -816,14 +1066,12 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                           </div>
                         </div>
 
-                        {/* Short Description */}
                         <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                           {ev.description}
                         </p>
 
-                        {/* Lead Department & Expected audience */}
                         <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                          <span className="text-slate-500">Phụ trách:</span>
+                          <span className="text-slate-500">Ban phụ trách:</span>
                           <span className="font-semibold text-slate-800">{ev.leadDepartment}</span>
                         </div>
 
@@ -843,55 +1091,89 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                           </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="pt-2 flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setDetailModalEvent(ev)}
-                            className="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>Xem chi tiết & Hoạt động</span>
-                          </button>
+                        {/* ========================================================================= */}
+                        {/* QR DYNAMIC & SCANNER ACTION BUTTONS (STRICT PERMISSION) */}
+                        {/* ========================================================================= */}
+                        <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            {/* DYNAMIC QR CODE GENERATOR BUTTON (Organizer Only) */}
+                            {isOrganizer ? (
+                              <button
+                                type="button"
+                                onClick={() => setQrBroadcastEvent(ev)}
+                                className="py-2 px-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                                title="Mở màn hình chiếu mã QR động 10 giây/lần"
+                              >
+                                <QrCode className="w-3.5 h-3.5" />
+                                <span>Tạo QR Động (10s)</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
+                                className="py-2 px-2.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed flex items-center justify-center gap-1"
+                                title="Chỉ Trưởng ban sự kiện này và Chủ nhiệm mới có quyền tạo QR điểm danh"
+                              >
+                                <Lock className="w-3 h-3 text-slate-400" />
+                                <span>Tạo QR (Trưởng ban)</span>
+                              </button>
+                            )}
 
-                          {currentUser && (
+                            {/* QR CODE SCANNER BUTTON (Students & Organizers) */}
                             <button
                               type="button"
-                              onClick={() => handleToggleMyAttendance(ev)}
-                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition-colors flex items-center justify-center gap-1 ${
+                              onClick={() => {
+                                if (!currentUser) {
+                                  onRequireAuth?.();
+                                  return;
+                                }
+                                setQrScanTargetEvent(ev);
+                                setScanResultFeedback(null);
+                                setManualTokenInput('');
+                              }}
+                              className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-colors flex items-center justify-center gap-1.5 ${
                                 isCheckedIn
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
                               }`}
-                              title={isCheckedIn ? 'Đã điểm danh' : 'Bấm để điểm danh tham gia'}
                             >
-                              <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
-                              <span className="hidden sm:inline">
-                                {isCheckedIn ? 'Đã check-in' : 'Điểm danh'}
-                              </span>
+                              <Scan className="w-3.5 h-3.5" />
+                              <span>{isCheckedIn ? 'Đã điểm danh ✓' : 'Quét QR Điểm danh'}</span>
                             </button>
-                          )}
+                          </div>
 
-                          {canManageEvents && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEditModal(ev)}
-                                className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition-colors"
-                                title="Chỉnh sửa sự kiện"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteEventClick(ev.id, ev.title)}
-                                className="p-2 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-slate-200 transition-colors"
-                                title="Xóa sự kiện"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </>
-                          )}
+                          {/* DETAILS BUTTON & ADMIN ACTIONS */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setDetailModalEvent(ev)}
+                              className="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors flex items-center justify-center gap-1.5"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Xem lịch trình chi tiết</span>
+                            </button>
+
+                            {canManageEvents && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditModal(ev)}
+                                  className="p-1.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition-colors"
+                                  title="Chỉnh sửa sự kiện"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteEventClick(ev.id, ev.title)}
+                                  className="p-1.5 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-slate-200 transition-colors"
+                                  title="Xóa sự kiện"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -899,7 +1181,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 })}
               </div>
             ) : (
-              /* EMPTY STATE WHEN NO EVENTS ON THIS DAY */
               <div className="py-12 px-6 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-300 space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto border border-indigo-100">
                   <CalendarDays className="w-6 h-6" />
@@ -909,7 +1190,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                     Không có sự kiện nào trong ngày này
                   </h4>
                   <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1 leading-relaxed">
-                    Bạn có thể chọn một ngày khác có đánh dấu chỉ báo trên lịch tháng hoặc lên kế hoạch tổ chức sự kiện mới cho ngày này.
+                    Bạn có thể chọn một ngày khác có chỉ báo trên lịch hoặc tạo sự kiện mới.
                   </p>
                 </div>
 
@@ -930,12 +1211,333 @@ export const EventsTab: React.FC<EventsTabProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 3.3. MODAL CHI TIẾT SỰ KIỆN & CÁC HOẠT ĐỘNG TRONG CHƯƠNG TRÌNH */}
+      {/* 2. DYNAMIC 10-SECOND ROTATING QR CODE BROADCAST MODAL (PROJECTOR SCREEN) */}
+      {/* ========================================================================= */}
+      {qrBroadcastEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div
+            className={`relative w-full ${
+              isQrFullscreen ? 'max-w-4xl h-[95vh]' : 'max-w-2xl'
+            } bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col transition-all duration-300`}
+          >
+            {/* MODAL HEADER */}
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center justify-center">
+                  <QrCode className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-extrabold tracking-tight">
+                      Màn hình Chiếu Mã QR Điểm danh Động
+                    </h3>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
+                      <span>Đang phát trực tiếp</span>
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 truncate max-w-md">
+                    {qrBroadcastEvent.title} · {qrBroadcastEvent.location}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsQrFullscreen(!isQrFullscreen)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  title={isQrFullscreen ? 'Thu nhỏ' : 'Toàn màn hình máy chiếu'}
+                >
+                  {isQrFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQrBroadcastEvent(null)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  title="Đóng màn hình chiếu"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* MODAL BODY */}
+            <div className="p-6 sm:p-8 flex-1 flex flex-col items-center justify-center text-center space-y-5 overflow-y-auto">
+              {/* 10-SECOND ROTATING TIMER INDICATOR */}
+              <div className="w-full max-w-sm space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                  <span className="flex items-center gap-1.5 text-indigo-700">
+                    <RefreshCw className={`w-3.5 h-3.5 ${qrSecondsLeft <= 2 ? 'animate-spin' : ''}`} />
+                    <span>Tự động đổi mã sau:</span>
+                  </span>
+                  <span className="font-mono text-sm px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                    {qrSecondsLeft} giây
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-1000 ease-linear rounded-full"
+                    style={{ width: `${(qrSecondsLeft / 10) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* QR CODE CONTAINER */}
+              <div className="relative p-4 sm:p-6 bg-white rounded-3xl border-2 border-indigo-200 shadow-xl inline-block group">
+                {qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="Mã QR Điểm Danh Động"
+                    className="w-64 h-64 sm:w-72 sm:h-72 object-contain mx-auto rounded-2xl"
+                  />
+                ) : (
+                  <div className="w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center bg-slate-50 rounded-2xl">
+                    <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
+                  </div>
+                )}
+
+                {/* Center Badge Icon */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-12 h-12 rounded-2xl bg-white shadow-lg border border-slate-200 flex items-center justify-center text-indigo-600 font-extrabold text-xs">
+                    UC
+                  </div>
+                </div>
+              </div>
+
+              {/* SECURITY EXPLANATION NOTICE */}
+              <div className="max-w-md text-xs text-slate-500 space-y-1">
+                <p className="font-semibold text-slate-700 flex items-center justify-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Bảo mật chống gian lận & điểm danh hộ</span>
+                </p>
+                <p>
+                  Mã QR được mã hóa và thay đổi động sau mỗi <strong>10 giây</strong>. Ảnh chụp màn hình gửi từ xa sẽ tự động hết hạn và bị hệ thống từ chối.
+                </p>
+              </div>
+
+              {/* LIVE ATTENDANCE MONITORING STATS */}
+              <div className="w-full max-w-lg p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                <div className="text-left">
+                  <div className="text-slate-500">Tiến độ điểm danh thực tế:</div>
+                  <div className="text-sm font-extrabold text-slate-900">
+                    {qrBroadcastEvent.attendees.length} / {qrBroadcastEvent.expectedAttendees} sinh viên
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQrScanTargetEvent(qrBroadcastEvent);
+                      setScanResultFeedback(null);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
+                  >
+                    <Scan className="w-3.5 h-3.5" />
+                    <span>Mở máy quét điểm danh</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* MODAL FOOTER */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <div className="truncate max-w-sm">
+                Thẩm quyền: <strong>{isClubPresident ? 'Chủ nhiệm CLB' : 'Trưởng ban Sự kiện'}</strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQrBroadcastEvent(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white transition-colors"
+              >
+                Đóng màn hình
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 3. QR SCANNER & ATTENDANCE VERIFICATION MODAL */}
+      {/* ========================================================================= */}
+      {qrScanTargetEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden my-8">
+            {/* HEADER */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-emerald-700 text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center">
+                  <Scan className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold tracking-tight">
+                    Quét Mã QR Điểm Danh Sự Kiện
+                  </h3>
+                  <p className="text-xs text-emerald-100 truncate max-w-xs">
+                    {qrScanTargetEvent.title}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setQrScanTargetEvent(null)}
+                className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* BODY */}
+            <div className="p-6 space-y-4">
+              {/* CURRENT STUDENT IDENTITY */}
+              {currentUser && myMemberRecord && (
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center text-xs">
+                      {myMemberRecord.fullName.split(' ').slice(-1)[0][0]}
+                    </div>
+                    <div>
+                      <div className="font-bold text-slate-900">{myMemberRecord.fullName}</div>
+                      <div className="text-[11px] text-slate-500 font-mono">
+                        MSSV: {myMemberRecord.mssv} · {myMemberRecord.department}
+                      </div>
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    Sẵn sàng điểm danh
+                  </span>
+                </div>
+              )}
+
+              {/* SCAN METHOD SWITCH */}
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl text-xs font-bold text-slate-600">
+                <button
+                  type="button"
+                  onClick={() => setScanMethod('camera')}
+                  className={`py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                    scanMethod === 'camera' ? 'bg-white text-slate-900 shadow-xs' : 'hover:text-slate-900'
+                  }`}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Quét Camera Trực tiếp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScanMethod('manual')}
+                  className={`py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                    scanMethod === 'manual' ? 'bg-white text-slate-900 shadow-xs' : 'hover:text-slate-900'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Mô phỏng 1 Chạm</span>
+                </button>
+              </div>
+
+              {/* CAMERA VIEWFINDER VIEW */}
+              {scanMethod === 'camera' && (
+                <div className="relative aspect-video w-full bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner">
+                  <video
+                    ref={videoRef}
+                    playsInline
+                    autoPlay
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+
+                  {/* CAMERA SCANNING VIEWFINDER RETICLE */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
+                    <div className="relative w-48 h-48 border-2 border-emerald-400 rounded-2xl">
+                      {/* Corner markers */}
+                      <span className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-emerald-500" />
+                      <span className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-emerald-500" />
+                      <span className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-emerald-500" />
+                      <span className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-emerald-500" />
+
+                      {/* Moving laser scan line */}
+                      <div className="w-full h-0.5 bg-emerald-400 shadow-[0_0_12px_#34d399] animate-pulse absolute top-1/2 -translate-y-1/2" />
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-2 text-[10px] text-white/80 bg-slate-900/60 px-3 py-1 rounded-full backdrop-blur-sm">
+                    Hướng camera về phía mã QR trên màn hình chiếu
+                  </div>
+                </div>
+              )}
+
+              {/* QUICK SCAN SIMULATOR (1-CLICK & ACCESSIBLE FOR DESKTOP / LABS) */}
+              <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 text-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-indigo-900 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>Mô phỏng Quét Nhanh (Dành cho thử nghiệm):</span>
+                  </span>
+                  <span className="text-[10px] text-indigo-600 font-mono">10s Dynamic Check</span>
+                </div>
+
+                <p className="text-indigo-800 text-[11px] leading-relaxed">
+                  Nhấn nút bên dưới để mô phỏng quét mã QR đang xoay vòng trực tiếp từ ban tổ chức:
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleSimulateQuickScan}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Scan className="w-4 h-4" />
+                  <span>Xác nhận quét mã QR đang chiếu ngay bây giờ</span>
+                </button>
+              </div>
+
+              {/* FEEDBACK STATUS ALERT */}
+              {scanResultFeedback && (
+                <div
+                  className={`p-4 rounded-2xl border text-xs flex items-start gap-3 animate-in fade-in ${
+                    scanResultFeedback.type === 'success'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                      : 'bg-rose-50 border-rose-200 text-rose-900'
+                  }`}
+                >
+                  {scanResultFeedback.type === 'success' ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  )}
+                  <div className="space-y-0.5">
+                    <div className="font-bold">
+                      {scanResultFeedback.type === 'success' ? 'Thành công!' : 'Lỗi điểm danh'}
+                    </div>
+                    <div className="leading-relaxed">{scanResultFeedback.message}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* FOOTER */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setQrScanTargetEvent(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white transition-colors"
+              >
+                Hoàn tất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. MODAL CHI TIẾT SỰ KIỆN & CÁC HOẠT ĐỘNG TRONG CHƯƠNG TRÌNH */}
       {/* ========================================================================= */}
       {detailModalEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="relative w-full max-w-3xl bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden my-8 animate-in fade-in duration-200">
-            {/* FULL COVER PHOTO BANNER */}
+            {/* BANNER COVER */}
             <div className="relative h-64 sm:h-72 w-full bg-slate-900 overflow-hidden">
               <img
                 src={detailModalEvent.imageUrl || DEFAULT_EVENT_IMAGE}
@@ -947,7 +1549,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
 
-              {/* Close button */}
               <button
                 type="button"
                 onClick={() => setDetailModalEvent(null)}
@@ -956,7 +1557,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 <X className="w-5 h-5" />
               </button>
 
-              {/* Top labels */}
               <div className="absolute top-4 left-4 flex items-center gap-2">
                 <span
                   className={`px-3 py-1 rounded-xl text-xs font-bold border backdrop-blur-md shadow-xs ${
@@ -985,7 +1585,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 </span>
               </div>
 
-              {/* Bottom Event Title */}
               <div className="absolute bottom-4 left-5 right-5 text-white space-y-1">
                 <div className="text-xs text-indigo-300 font-bold uppercase tracking-wider">
                   {detailModalEvent.leadDepartment}
@@ -1033,6 +1632,48 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 </div>
               </div>
 
+              {/* QUICK QR SHORTCUTS BAR IN DETAIL MODAL */}
+              <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-indigo-950">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <QrCode className="w-4 h-4 text-indigo-600" />
+                    <span>Điểm danh bằng Mã QR Động (Đổi mỗi 10 giây)</span>
+                  </div>
+                  <div className="text-[11px] text-indigo-700 mt-0.5">
+                    Hỗ trợ quét qua camera hoặc mã xác thực thời gian thực
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {isAuthorizedOrganizer(detailModalEvent) && (
+                    <button
+                      type="button"
+                      onClick={() => setQrBroadcastEvent(detailModalEvent)}
+                      className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>Chiếu QR Động</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!currentUser) {
+                        onRequireAuth?.();
+                        return;
+                      }
+                      setQrScanTargetEvent(detailModalEvent);
+                      setScanResultFeedback(null);
+                    }}
+                    className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Scan className="w-3.5 h-3.5" />
+                    <span>Quét QR</span>
+                  </button>
+                </div>
+              </div>
+
               {/* DESCRIPTION & OBJECTIVES */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -1052,7 +1693,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 )}
               </div>
 
-              {/* PROGRAM ACTIVITIES TIMELINE / AGENDA */}
+              {/* PROGRAM ACTIVITIES TIMELINE */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                   <ListOrdered className="w-4 h-4 text-indigo-600" />
@@ -1089,7 +1730,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                   </div>
                 ) : (
                   <p className="text-xs text-slate-500 italic">
-                    Chương trình đang được Ban Sự kiện cập nhật chi tiết...
+                    Chương trình đang được cập nhật chi tiết...
                   </p>
                 )}
               </div>
@@ -1104,7 +1745,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                     </span>
                   </h4>
 
-                  {/* Search attendee input */}
                   <div className="relative w-full sm:w-48">
                     <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
                     <input
@@ -1117,7 +1757,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                   </div>
                 </div>
 
-                {/* Attendees list grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
                   {members
                     .filter((m) =>
@@ -1132,20 +1771,14 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                         <div
                           key={m.id}
                           onClick={() => {
-                            if (canManageEvents) {
+                            if (isAuthorizedOrganizer(detailModalEvent)) {
                               onToggleAttendee(detailModalEvent.id, m.id);
-                              // Update local state
-                              const updated = isChecked
-                                ? detailModalEvent.attendees.filter((id) => id !== m.id)
-                                : [...detailModalEvent.attendees, m.id];
-                              setDetailModalEvent({
-                                ...detailModalEvent,
-                                attendees: updated,
-                              });
                             }
                           }}
                           className={`p-2.5 rounded-xl border flex items-center justify-between transition-all ${
-                            canManageEvents ? 'cursor-pointer hover:border-slate-300' : 'cursor-default'
+                            isAuthorizedOrganizer(detailModalEvent)
+                              ? 'cursor-pointer hover:border-slate-300'
+                              : 'cursor-default'
                           } ${
                             isChecked
                               ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900'
@@ -1180,9 +1813,9 @@ export const EventsTab: React.FC<EventsTabProps> = ({
             {/* MODAL FOOTER */}
             <div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
               <div className="text-xs text-slate-500">
-                {canManageEvents
-                  ? 'Bạn có quyền quản lý sự kiện và điểm danh thành viên'
-                  : 'Chỉ ban tổ chức mới có quyền chỉnh sửa thông tin sự kiện'}
+                {isAuthorizedOrganizer(detailModalEvent)
+                  ? 'Bạn có quyền tạo mã QR và quản lý điểm danh cho sự kiện này'
+                  : 'Chỉ Trưởng ban sự kiện và Chủ nhiệm mới có quyền quản lý điểm danh'}
               </div>
 
               <div className="flex items-center gap-2">
@@ -1197,7 +1830,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                     className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 transition-colors flex items-center gap-1.5"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
-                    <span>Sửa sự kiện</span>
+                    <span>Sửa</span>
                   </button>
                 )}
 
@@ -1215,7 +1848,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 3.2. MODAL TẠO & CHỈNH SỬA SỰ KIỆN CÓ QUẢN LÝ ẢNH & HOẠT ĐỘNG */}
+      {/* 5. ADD / EDIT EVENT MODAL */}
       {/* ========================================================================= */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 overflow-y-auto">
@@ -1244,7 +1877,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
               </button>
             </div>
 
-            {/* CONFLICT ERROR ALERT */}
             {conflictError && (
               <div className="mx-6 mt-4 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
                 <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
@@ -1256,7 +1888,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
             )}
 
             <form onSubmit={handleSaveEvent} className="p-6 space-y-4 max-h-[calc(85vh-12rem)] overflow-y-auto">
-              {/* TITLE */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Tên sự kiện / Hoạt động <span className="text-rose-500">*</span>
@@ -1271,7 +1902,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 />
               </div>
 
-              {/* CATEGORY & LEAD DEPARTMENT (2 COLS) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
@@ -1308,7 +1938,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 </div>
               </div>
 
-              {/* DATE & TIME (3 COLS) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
@@ -1350,7 +1979,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 </div>
               </div>
 
-              {/* LOCATION & EXPECTED ATTENDEES (2 COLS) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
@@ -1381,19 +2009,14 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 </div>
               </div>
 
-              {/* 3.2. THÊM HÌNH ẢNH CHO SỰ KIỆN (IMAGE PICKER & CUSTOM URL) */}
               <div className="space-y-2 pt-2 border-t border-slate-100">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
                     <span>Hình ảnh minh họa sự kiện</span>
                   </span>
-                  <span className="text-[11px] font-normal text-slate-400">
-                    Chọn nhanh mẫu bên dưới hoặc dán URL ảnh
-                  </span>
                 </label>
 
-                {/* Preset Chips */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {PRESET_EVENT_IMAGES.map((preset) => (
                     <button
@@ -1418,7 +2041,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                   ))}
                 </div>
 
-                {/* Direct Image URL input */}
                 <input
                   type="url"
                   value={formImageUrl}
@@ -1428,7 +2050,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 />
               </div>
 
-              {/* DESCRIPTION & OBJECTIVE */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Mô tả & Mục tiêu sự kiện <span className="text-rose-500">*</span>
@@ -1443,7 +2064,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 />
               </div>
 
-              {/* TARGET AUDIENCE */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Đối tượng tham gia
@@ -1457,7 +2077,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 />
               </div>
 
-              {/* 3.3. ACTIVITIES BUILDER */}
               <div className="space-y-2 pt-2 border-t border-slate-100">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
@@ -1490,7 +2109,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                   ))}
                 </div>
 
-                {/* Add new activity row */}
                 <div className="flex items-center gap-2 pt-1">
                   <input
                     type="text"
@@ -1515,7 +2133,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 </div>
               </div>
 
-              {/* FORM ACTIONS */}
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"

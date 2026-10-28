@@ -24,7 +24,7 @@ import {
   Lock,
   Database,
 } from 'lucide-react';
-import { ClubMember, ClubEvent, TreasuryTransaction, AuthUser, UserRole } from './types.ts';
+import { ClubMember, ClubEvent, TreasuryTransaction, AuthUser, UserRole, Department } from './types.ts';
 import {
   INITIAL_MEMBERS,
   INITIAL_EVENTS,
@@ -244,11 +244,67 @@ export default function App() {
     addMemberDoc(newMember).catch((err) => console.error('Add member Firestore error:', err));
   };
 
-  const handleApproveMember = (id: string) => {
+  const handleApproveMember = (
+    id: string,
+    assignedDept?: Department,
+    assignedRole?: string,
+    assignedUserRole?: UserRole
+  ) => {
+    const targetMember = members.find((m) => m.id === id);
+    if (!targetMember) return;
+
+    const newDept = assignedDept || targetMember.department;
+    const newRole = assignedRole || 'Thành viên chính thức';
+    const newUserRole: UserRole =
+      assignedUserRole ||
+      (newRole.includes('Chủ nhiệm')
+        ? 'admin'
+        : newRole.includes('Thủ quỹ')
+        ? 'treasurer'
+        : newRole.includes('Sự kiện')
+        ? 'event_lead'
+        : 'member');
+
     setMembers((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, status: 'official', role: 'Thành viên chính thức' } : m))
+      prev.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              status: 'official',
+              department: newDept,
+              role: newRole,
+              activityScore: Math.max(m.activityScore, 70),
+            }
+          : m
+      )
     );
-    updateMemberDoc(id, { status: 'official', role: 'Thành viên chính thức' }).catch(console.error);
+    updateMemberDoc(id, {
+      status: 'official',
+      department: newDept,
+      role: newRole,
+      activityScore: Math.max(targetMember.activityScore, 70),
+    }).catch(console.error);
+
+    // Update corresponding user in authUsers list and Firestore
+    setAuthUsers((prev) =>
+      prev.map((u) => {
+        if (
+          u.mssv.toUpperCase() === targetMember.mssv.toUpperCase() ||
+          u.email.toLowerCase() === targetMember.email.toLowerCase()
+        ) {
+          const updatedUser: AuthUser = {
+            ...u,
+            status: 'official',
+            department: newDept,
+            role: newUserRole,
+            roleTitle: newRole,
+          };
+          saveUserDoc(updatedUser).catch(console.error);
+          return updatedUser;
+        }
+        return u;
+      })
+    );
   };
 
   const handleAddScore = (id: string, points: number) => {
@@ -351,7 +407,7 @@ export default function App() {
     setAuthUsers((prev) => [newUser, ...prev]);
     saveUserDoc(newUser).catch(console.error);
 
-    // Also register as a member in the club roster
+    // Also register as a member in the club roster (waiting for President assignment)
     const newMember: ClubMember = {
       id: `mem-${Date.now()}`,
       mssv: newUser.mssv,
@@ -359,10 +415,10 @@ export default function App() {
       email: newUser.email,
       phone: newUser.phone || '0912345678',
       department: newUser.department,
-      role: newUser.roleTitle,
+      role: 'Ứng viên (Chờ phân quyền)',
       joinDate: new Date().toISOString().split('T')[0],
-      status: 'official',
-      activityScore: 80,
+      status: 'pending',
+      activityScore: 50,
     };
     setMembers((prev) => [newMember, ...prev]);
     addMemberDoc(newMember).catch(console.error);
@@ -873,7 +929,6 @@ export default function App() {
             {activeTab === 'members' && (
               <MembersTab
                 members={members}
-                onAddMember={handleAddMember}
                 onApproveMember={handleApproveMember}
                 onAddScore={handleAddScore}
                 onDeleteMember={handleDeleteMember}
